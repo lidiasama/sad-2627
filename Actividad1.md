@@ -9,6 +9,6 @@ Cables y regleta desordenados en el suelo | Implementación | Alguien puede caer
 No tienen SAI | Diseño | Corte de luz o subida de tensión que apaga los equipos de golpe | Física | Integridad
 Documentación sin llave | Uso | Pueden robarlos o consultarlos sin autorización | Física | Confidencialidad
 Conexión por Wi-Fi | Diseño | Alguien desde fuera puede colarse en la red | Lógica | Confidencialidad
-Acceso directo de clientes vía IP a carpetas compartidas | Implementación | Un cliente puede entrar en la carpeta compartida y navegar por el resto del servidor | Lógica |
+Acceso directo de clientes vía IP a carpetas compartidas | Implementación | Un cliente puede entrar en la carpeta compartida y navegar por el resto del servidor | Lógica | Confidencialidad
 Maceta con riego junto a equipos informáticos y papel | Uso | Puede derramarse agua sobre el equipo | Física | Disponibilidad
 Riesgo de subida de malware a través de los archivos de clientes | Implementación | Puede entrar un virus en un archivo | Lógica | Confidencialidad
