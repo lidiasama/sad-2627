@@ -15,6 +15,7 @@ Se lleva a cabo porque el protocolo smtp fue diseñado sin mecanismo de autentic
 (Confidencialidad / Integridad / Autenticidad / Disponibilidad — justificad)
 Autenticidad al modificar el remitente.
 Integridad y disponibilidad en cascada
+
 ### Ejemplo o caso real
 100 mill de dolares a facebook y google, un atacante uso este metodo para enviar correos como proveedor para solicitar dinero.
 
@@ -22,24 +23,29 @@ Integridad y disponibilidad en cascada
 Los protocolos son SPF, DKIM, DMARC
 
 ### Fuente
-(si es vuestro ataque asignado: enlace consultado. Si lo habéis completado 
-en la puesta en común: "Puesta en común — expuesto por [nombre o grupo]")
+GRUPO 4
 
 
 ## 2. DNS spoofing
 
 ### Qué es
+Ciberataque donde se alteran los registros y el caché de los servidores DNS para redirigir el trafico a webs falsas o malisiosas.
 
 ### Cómo se lleva a cabo
+Modifica los registros y el caché de los servidores DNS, cambiando las ip para interceptar datos
 
 ### Qué categoría(s) de amenaza compromete
+Las 3. 
 
 ### Ejemplo o caso real
+2015, se lanzó un ataque dns contra una aerolínea para acceder en vez de la web de los vuelos para ver tu vuelo, te daba un error 404 y una foto de un lagarto.
 
 ### Medida de prevención
+Servicio dnssec con firma pictográfica.
+https como cifrado de la conexión
 
 ### Fuente
-
+GRUPO 2
 
 ## 3. IP spoofing
 
