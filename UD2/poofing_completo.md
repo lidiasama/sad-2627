@@ -103,3 +103,4 @@ Grupo 3
 
 
 ## Aplicado a Estudio Torrent
+Yo creo que la empresa de Torrent es más susceptible a un ataque IP o SMTP spoofing, ya que es una empresa pequeña que no tiene en cuenta muchas de estas amenazas y puede responder a algún cliente o proveedor con datos confidenciales o con pagos falsos. 
