@@ -19,13 +19,13 @@ Para cada elemento de la lista, decidid a qué nivel pertenece y justificad por 
 
 .	| Elemento de Estudio Torrent |	Nivel (1-5) |	Justificación
 --|-----------------------------|-------------|---------------
-1 | El catálogo de servicios publicado en la web del estudio | 1 |
-2 | Un correo interno entre los socios sobre el calendario de vacaciones | 2 |
-3 | Las facturas emitidas a los clientes | 3 |
-4 | La contraseña de acceso al ERP | 5 |
-5 | Los planos de la vivienda de un cliente, guardados en el disco compartido | 3 |
-6 | El informe de auditoría de vulnerabilidades hecho con Nessus | 5 |
-7 | Una conversación entre los tres socios sobre si aceptan o no una oferta de compra del estudio | 3 |
-8 |	El PDF con las tarifas estándar de los servicios del estudio | 1 | 
-9 | Las notas de un socio explicando por qué han perdido un cliente frente a la competencia | 3 |
-10 | El registro de qué hora entra cada socio a trabajar | 3 |
+1 | El catálogo de servicios publicado en la web del estudio | 1 | Es información creada para que cualquier persona pueda verla publicamente
+2 | Un correo interno entre los socios sobre el calendario de vacaciones | 3 | Revela ausencias del personal, facilitando ataques de ingeniería social o suplantación.
+3 | Las facturas emitidas a los clientes | 3 | Contiene datos personales del cliente y puede ser una infracción del RGPD o facilitar fraudes a los clientes
+4 | La contraseña de acceso al ERP | 5 | Conocerla permite el control o manipulación del sotfware de la empresa
+5 | Los planos de la vivienda de un cliente, guardados en el disco compartido | 3 | Incluyen información privada del cliente
+6 | El informe de auditoría de vulnerabilidades hecho con Nessus | 5 | Muestra exactamente las vulnerabilidades del sistema
+7 | Una conversación entre los tres socios sobre si aceptan o no una oferta de compra del estudio | 3 | Es una negociación que solo concierne al equipo directivo
+8 |	El PDF con las tarifas estándar de los servicios del estudio | 1 | Son los precios de referencia de la empresa que los clientes pueden consultar
+9 | Las notas de un socio explicando por qué han perdido un cliente frente a la competencia | 3 | Solo lo debe conocer el equipo comercial para no dar ventajas a los competidores
+10 | El registro de qué hora entra cada socio a trabajar | 3 | Son datos de control de jornada e información personal que no debe difundirse fuera del estudio
