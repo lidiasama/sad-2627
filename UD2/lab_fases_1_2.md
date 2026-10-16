@@ -48,8 +48,6 @@ Puerto | Servicio | Versión
 - Si el ping responde: Si responde
 
 ### B3. Contramedidas (en Torrent-Vulnerable, con sudo)
-Usuario msfadmin, contraseña msfadmin.
-
 Suposición de trabajo: este servidor solo tiene que ofrecer servicio web (puerto 80) y administración remota por SSH (puerto 22). Todo lo demás sobra.
 
 #### Contramedida 1 — Inventariar y apagar servicios innecesarios
@@ -59,7 +57,7 @@ Suposición de trabajo: este servidor solo tiene que ofrecer servicio web (puert
 
 Puerto | Servicio | Es necesario | Decisión
 -------|----------|--------------|----------
-512
+512 | | No | Apagar
 513
 2049
 514
@@ -90,20 +88,23 @@ Puerto | Servicio | Es necesario | Decisión
 22 | sshd | Si |
 5432 | postgres | No |
 953 | named | No |
-2049 |
-38151 |
-137 | nmbd | No |
-138 | nmbd | No |
-911 | rpc.statd | No |
-57123 | named | No |
-57638 | rpc.mountd | No |
-69 |
-39764 | rcp.statd | No |
-111 | portmap | No |
-53 | named | No |
-50375 | named | No |
 
 4. Apagad los servicios que sobran. El profesor os dará el método para cada uno (unos se paran con su script de /etc/init.d/, otros se desactivan en un archivo de configuración).
+
+##### Puerto 512
+Vamos a averiguar que servicio y archivo es:
+PASO 1: Preguntárselo al servicio (el más fiable). Ve a la máquina Torrent-Auditor. Ejecuta:
+sudo nmap -sV -p 512 192.168.1.101: 
+<img width="962" height="245" alt="image" src="https://github.com/user-attachments/assets/b46eb227-c940-400e-aa21-42c301de451d" />
+Aquí podemos confirmar que es el Servicio exec
+
+PASO 2: Ahora que tenemos el nombre del servicio vamos a averiguar donde está el servicio, si en un archivo de xinetd.d o en una linea dentro de inetd.conf
+<img width="900" height="65" alt="image" src="https://github.com/user-attachments/assets/b9e02c3a-f6bb-4a99-ad9c-5673ecba5ce5" />
+Aquí podemos observar que cuando buscamos si existe un archivo con el nombre del servicio en xinetd no sale nada, pero cuando buscamos si existe una línea con el nombre del servicio dentro de inetd si que nos aparece.
+
+PASO 3: Vamos a tumbar el puerto 512. Para ello debemos comentar la línea en inetd.conf. En la máquina Torrent-Vulnerable, ejecuta para poner la almohadilla # al inicio de la línea de exec:
+sudo sed -i 's/^exec/#exec/' /etc/inetd.conf
+
 
 #### Contramedida 2 — Bloquear el ping
 sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
