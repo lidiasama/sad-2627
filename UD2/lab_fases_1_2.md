@@ -51,16 +51,17 @@ Puerto | Servicio | Versión
 Suposición de trabajo: este servidor solo tiene que ofrecer servicio web (puerto 80) y administración remota por SSH (puerto 22). Todo lo demás sobra.
 
 #### Contramedida 1 — Inventariar y apagar servicios innecesarios
-1. Listad lo que escucha: sudo netstat -tulpn
+1. Listad lo que escucha:
+   ``` sudo netstat -tulpn ```
 
-2. Haced una tabla: puerto, servicio, ¿es necesario según la suposición de trabajo?, decisión.
+3. Haced una tabla: puerto, servicio, ¿es necesario según la suposición de trabajo?, decisión.
 
 Puerto | Servicio | Es necesario | Decisión
 -------|----------|--------------|----------
-512 | | No | Apagar
-513
-2049
-514
+512 | exec | No | Apagar
+513 | | No | Apagar
+2049 | | No | Apagar
+514 | | No | Apagar
 47587 | rmiregisty | No |
 8009 | jsvc | No |
 6697 | unrealircd | No |
@@ -70,15 +71,15 @@ Puerto | Servicio | Es necesario | Decisión
 6667 | unrealircd | No |
 139 | smbd | No |
 5900 | Xtightvnc | No |
-45260 |  
+45260 |   | No | Apagar
 44559 | rpc.statd | No |
 111 | portmap | No |
 6000 | Xtightvnc | No |
 80 | Apache | Sí |
 8787 | ruby | No |
 8180 | jsvc | No |
-1524 | 
-21 |
+1524 |  | No | Apagar
+21 | | No | Apagar
 5432 | postgres | No |
 25 | master | No |
 445 | smbd | No |
@@ -93,18 +94,34 @@ Puerto | Servicio | Es necesario | Decisión
 
 ##### Puerto 512
 Vamos a averiguar que servicio y archivo es:
-PASO 1: Preguntárselo al servicio (el más fiable). Ve a la máquina Torrent-Auditor. Ejecuta:
-sudo nmap -sV -p 512 192.168.1.101: 
+
+PASO 1: Preguntárselo al servicio (el más fiable). Ve a la máquina Torrent-Auditor. Ejecuta: ``` sudo nmap -sV -p 512 192.168.1.101 ```
+En este caso la IP es la IP del host vulnerable y 512 es el puerto del servicio que queremos conocer.
+
 <img width="962" height="245" alt="image" src="https://github.com/user-attachments/assets/b46eb227-c940-400e-aa21-42c301de451d" />
+
 Aquí podemos confirmar que es el Servicio exec
 
 PASO 2: Ahora que tenemos el nombre del servicio vamos a averiguar donde está el servicio, si en un archivo de xinetd.d o en una linea dentro de inetd.conf
+
 <img width="900" height="65" alt="image" src="https://github.com/user-attachments/assets/b9e02c3a-f6bb-4a99-ad9c-5673ecba5ce5" />
+
 Aquí podemos observar que cuando buscamos si existe un archivo con el nombre del servicio en xinetd no sale nada, pero cuando buscamos si existe una línea con el nombre del servicio dentro de inetd si que nos aparece.
 
-PASO 3: Vamos a tumbar el puerto 512. Para ello debemos comentar la línea en inetd.conf. En la máquina Torrent-Vulnerable, ejecuta para poner la almohadilla # al inicio de la línea de exec:
-sudo sed -i 's/^exec/#exec/' /etc/inetd.conf
+PASO 3: Vamos a apagar el puerto 512. Como tiene un portero cuando lo apagamos ya no vuelve.
 
+Para ello debemos comentar la línea en inetd.conf. En la máquina Torrent-Vulnerable, ejecuta para poner la almohadilla "#" al inicio de la línea de exec: ``` sudo sed -i 's/^exec/#exec/' /etc/inetd.conf ```
+
+
+Verificación: Ejecuta ``` grep exec /etc/inetd.conf ``` y comprueba que la línea ahora comienza por #exec.
+
+PASO 4: Recargar el portero. Recarga el servicio usando su script en /etc/init.d/ para que relea el fichero sin tumbar las demás conexiones: ``` sudo /etc/init.d/xinetd reload ```
+
+
+PASO 5: Comprobamos que el puerto esta cerrado y que los demás servicios siguen vivos
+Con ''' sudo netstat -tulpn | grep ':512' ``` no debe devolver nada
+
+Desde el auditor: ``` Sudo nmap -sV 512 192.168.1.101 ``` El puerto debe figurar como closed
 
 #### Contramedida 2 — Bloquear el ping
 sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
@@ -113,8 +130,8 @@ Comprobad desde Torrent-Auditor: ping -c 3 <IP>.
 
 ### B4. Medición DESPUÉS
 En Torrent-Auditor:
-sudo nmap -sV <IP> -oN despues.txt
-diff antes.txt despues.txt
+``` sudo nmap -sV <IP> -oN despues.txt 
+diff antes.txt despues.txt ```
 
 Rellenad la tabla:
 
