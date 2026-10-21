@@ -93,92 +93,92 @@ Puerto | Servicio | Es necesario | Decisión
 4. Apagad los servicios que sobran. El profesor os dará el método para cada uno (unos se paran con su script de /etc/init.d/, otros se desactivan en un archivo de configuración).
 
 ## PASOS A SEGUIR PARA TUMBAR UN SERVICIO
-**Diagnóstico inicial: El punto de partida común**
+### Diagnóstico inicial: El punto de partida común
+
 En Torrent-Vulnerable, consulta el puerto: ``` sudo netstat -tulpn | grep ':PUERTO ' ```
 
 Fíjate en la última columna (PID/Program name):
 
-**Caso 1: Si pone el nombre directo del programa:**
+#### Caso 1: Si pone el nombre directo del programa:
 Comprueba si tiene script en /etc/init.d/ con: ``` ls /etc/init.d/ | grep NOMBRE ```
 
 Si SÍ sale un archivo en init.d: Aplica el **Procedimiento 1**
 Si NO sale nada en init.d: Aplica el **Procedimiento 3**
 
-**Caso 2: Si pone xinetd o inetd**
+#### Caso 2: Si pone xinetd o inetd
 Aplica directamente el **Procedimiento 2**
 
-**PROCEDIMIENTO 1: SERVICIO PERMANENTE CON SCRIPT EN /etc/init.d/**
-Identificar (en Torrent-Vulnerable):
-Ejecuta: ``` sudo netstat -tulpn | grep ':PUERTO ' ```
-Verifica que en la última columna aparece su propio ejecutable y PID, no xinetd.
+### PROCEDIMIENTO 1: SERVICIO PERMANENTE CON SCRIPT EN /etc/init.d/
+1. Identificar (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo netstat -tulpn | grep ':PUERTO ' ```
+   - Verifica que en la última columna aparece su propio ejecutable y PID, no xinetd.
 
-Averiguar cómo arranca (en Torrent-Vulnerable):
-Ejecuta: ``` ls /etc/init.d/ | grep NOMBRE ``` y ```  ls -l /etc/rc2.d/ | grep NOMBRE ```
-Verifica que existe el script en init.d y un enlace con letra S en rc2.d
+2. Averiguar cómo arranca (en Torrent-Vulnerable):
+- Ejecuta: ``` ls /etc/init.d/ | grep NOMBRE ``` y ```  ls -l /etc/rc2.d/ | grep NOMBRE ```
+   - Verifica que existe el script en init.d y un enlace con letra S en rc2.d
 
-Parar ahora (en Torrent-Vulnerable):
-Ejecuta: ``` sudo /etc/init.d/NOMBRE_DEL_SCRIPT stop ```
-Verifica que devuelva un mensaje de confirmación con [ OK ] y que netstat ya no muestre el puerto
+3. Parar ahora (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo /etc/init.d/NOMBRE_DEL_SCRIPT stop ```
+   - Verifica que devuelva un mensaje de confirmación con [ OK ] y que netstat ya no muestre el puerto
 
-Impedir que vuelva al reiniciar (en Torrent-Vulnerable):
-Ejecuta: ``` sudo update-rc.d -f NOMBRE_DEL_SCRIPT remove ```
-Verifica que el comando liste los enlaces eliminados y que "ls /etc/rc2.d/ | grep NOMBRE" ya no devuelva nada
+4. Impedir que vuelva al reiniciar (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo update-rc.d -f NOMBRE_DEL_SCRIPT remove ```
+   - Verifica que el comando liste los enlaces eliminados y que "ls /etc/rc2.d/ | grep NOMBRE" ya no devuelva nada
 
-Comprobar (en Torrent-Auditor):
-Ejecuta: ``` sudo nmap -p PUERTO 192.168.1.101 ```
-Verifica que el estado del puerto figure como "closed"
+5. Comprobar (en Torrent-Auditor):
+- Ejecuta: ``` sudo nmap -p PUERTO 192.168.1.101 ```
+   - Verifica que el estado del puerto figure como "closed"
+
 
 
 **PROCEDIMIENTO 2: SERVICIO A DEMANDA BAJO EL PORTERO (xinetd / inetd**
-Identificar (en Torrent-Vulnerable):
-Ejecuta: ``` sudo netstat -tulpn | grep ':PUERTO ' ```
-Verifica que en la columna de la derecha aparezca xinetd o inetd
+1. Identificar (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo netstat -tulpn | grep ':PUERTO ' ```
+   - Verifica que en la columna de la derecha aparezca xinetd o inetd
 
-Averiguar dónde está su fichero (en Torrent-Vulnerable):
-Ejecuta: ``` sudo grep -rn -w 'PUERTO' /etc/inetd.conf /etc/xinetd.conf /etc/xinetd.d/ 2>/dev/null ```
-Verifica qué fichero y qué número de línea devuelven el resultado.
+2. Averiguar dónde está su fichero (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo grep -rn -w 'PUERTO' /etc/inetd.conf /etc/xinetd.conf /etc/xinetd.d/ 2>/dev/null ```
+   - Verifica qué fichero y qué número de línea devuelven el resultado.
 
-Parar e impedir a la vez (en Torrent-Vulnerable): 
+3. Parar e impedir a la vez (en Torrent-Vulnerable): 
+- Si el resultado estaba en /etc/inetd.conf:
+   - Abre el archivo con: ``` sudo nano /etc/inetd.conf ```
+   - Busca la línea del servicio y escribe un "#" al principio de la línea. Guarda con Ctrl+O, Enter y sal con Ctrl+X.
+   - Luego recarga el portero con: ``` sudo /etc/init.d/xinetd reload ```
 
-Si el resultado estaba en /etc/inetd.conf:
-Abre el archivo con: ``` sudo nano /etc/inetd.conf ```
-Busca la línea del servicio y escribe un "#" al principio de la línea. Guarda con Ctrl+O, Enter y sal con Ctrl+X.
+- Si el resultado estaba en /etc/xinetd.d/NOMBRE:
+   - Abre el archivo con: ``` sudo nano /etc/xinetd.d/NOMBRE ```
+   - Cambia donde dice "disable = no" por "disable = yes". Guarda con Ctrl+O, Enter y sal con Ctrl+X.
+   - Luego recarga el portero con: ```sudo /etc/init.d/xinetd reload```
 
-Luego recarga el portero con: ``` sudo /etc/init.d/xinetd reload ```
-
-Si el resultado estaba en /etc/xinetd.d/NOMBRE:
-Abre el archivo con: ``` sudo nano /etc/xinetd.d/NOMBRE ```
-Cambia donde dice "disable = no" por "disable = yes". Guarda con Ctrl+O, Enter y sal con Ctrl+X.
-
-Luego recarga el portero con: ```sudo /etc/init.d/xinetd reload```
-
-Comprobar (en Torrent-Auditor):
-Ejecuta: ``` sudo nmap -p PUERTO 192.168.1.101 ```
-Verifica que el puerto objetivo salga en estado "closed" y que los demás servicios de xinetd que necesites sigan funcionando.
+4. Comprobar (en Torrent-Auditor):
+- Ejecuta: ``` sudo nmap -p PUERTO 192.168.1.101 ```
+   - Verifica que el puerto objetivo salga en estado "closed" y que los demás servicios de xinetd que necesites sigan funcionando.
 
 
 **PROCEDIMIENTO 3: SERVICIO PERMANENTE SIN SCRIPT EN /etc/init.d/**
-Identificar (en Torrent-Vulnerable):
-Ejecuta: ``` sudo netstat -tulpn | grep ':PUERTO ' ```
-Verifica que muestra un ejecutable propio (ejemplo: rmiregistry) y no xinetd.   
+1. Identificar (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo netstat -tulpn | grep ':PUERTO ' ```
+   - Verifica que muestra un ejecutable propio (ejemplo: rmiregistry) y no xinetd.   
 
-Averiguar de dónde arranca (en Torrent-Vulnerable):
-Paso 2.1: Comprueba que no existe en init.d ejecutando: ```ls /etc/init.d/ | grep NOMBRE ```
-Verifica que la salida está totalmente vacía (no hay script de parada).   
+2. Averiguar de dónde arranca (en Torrent-Vulnerable):
+- Paso 2.1: Comprueba que no existe en init.d ejecutando: ```ls /etc/init.d/ | grep NOMBRE ```
+   - Verifica que la salida está totalmente vacía (no hay script de parada).   
 
-Paso 2.2: Busca la línea de arranque en /etc/rc.local ejecutando: ``` grep -n 'NOMBRE' /etc/rc.local ```
-Verifica el número de línea donde está escrita la orden de inicio.   
-(Si no saliera en rc.local, busca tareas programadas con: sudo crontab -l | grep '@reboot')
+- Paso 2.2: Busca la línea de arranque en /etc/rc.local ejecutando: ``` grep -n 'NOMBRE' /etc/rc.local ```
+   - Verifica el número de línea donde está escrita la orden de inicio.   
+   - (Si no saliera en rc.local, busca tareas programadas con: sudo crontab -l | grep '@reboot')
 
-Parar e impedir (en Torrent-Vulnerable):
-Abre el archivo donde apareció: ```sudo nano /etc/rc.local ```
-Baja hasta la línea del servicio y añade una almohadilla "#" al inicio. Guarda con Ctrl+O, Enter y sal con Ctrl+X
-
-Para aplicar la detención definitiva y verificar que el cambio persiste (Regla 3 de La Receta), reinicia la máquina con: ``` sudo reboot ```
+3. Parar e impedir (en Torrent-Vulnerable):
+- Abre el archivo donde apareció: ```sudo nano /etc/rc.local ```
+   -Baja hasta la línea del servicio y añade una almohadilla "#" al inicio. Guarda con Ctrl+O, Enter y sal con Ctrl+X
+- Para aplicar la detención definitiva y verificar que el cambio persiste (Regla 3 de La Receta), reinicia la máquina con: ``` sudo reboot ```
 
 Comprobar tras reiniciar:
-- Comprobación dentro (en Torrent-Vulnerable): ```sudo netstat -tulpn | grep ':PUERTO ' ```. Verifica que no devuelve ninguna línea (salida vacía).   
-- Comprobación fuera (en Torrent-Auditor): ```sudo nmap -p PUERTO 192.168.1.101```. Verifica que devuelva "closed".
+- Comprobación dentro (en Torrent-Vulnerable): ```sudo netstat -tulpn | grep ':PUERTO ' ```.
+     - Verifica que no devuelve ninguna línea (salida vacía).   
+- Comprobación fuera (en Torrent-Auditor): ```sudo nmap -p PUERTO 192.168.1.101```.
+   - Verifica que devuelva "closed".
 
 
 ### Puerto 512
@@ -374,8 +374,8 @@ sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
 
 ### B4. Medición DESPUÉS
 En Torrent-Auditor:
-``` sudo nmap -sV <IP> -oN despues.txt 
-diff antes.txt despues.txt ```
+``` sudo nmap -sV <IP> -oN despues.txt ```
+``` diff antes.txt despues.txt ```
 
 Rellenad la tabla:
 
