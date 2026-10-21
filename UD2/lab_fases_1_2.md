@@ -1,4 +1,4 @@
-<img width="752" height="55" alt="image" src="https://github.com/user-attachments/assets/2ad7009d-8a0f-42db-b878-d0089cc1d4e4" /># Laboratorio fases 1 y 2 — Estudio Torrent
+# Laboratorio fases 1 y 2 — Estudio Torrent
 
 ## A1. whois y nslookup
 No es necesario
@@ -135,8 +135,16 @@ Puerto | Servicio | Es necesario | Decisión
    - Verificación: En la columna derecha figura explícitamente xinetd o inetd
 
 2. Averiguar dónde está su fichero (en Torrent-Vulnerable):
-- Ejecuta: ``` sudo grep -rn -w 'PUERTO' /etc/inetd.conf /etc/xinetd.conf /etc/xinetd.d/ 2>/dev/null ```
+   - (En los ficheros del portero no suele figurar el número de puerto, sino su nombre de servicio. Por eso se divide en dos fases:)
+- Paso 2.1. Averiguar el nombre oficial del servicio (Agenda del sistema / Escaneo)
+   - Opción A. Ejecuta: ``` grep -w 'PUERTO/tcp' /etc/services ```
+   - La primera columna te da el nombre exacto del servicio
+   - Opción B.(Preguntárselo al servicio desde Torrent-Auditor) Ejecuta: ``` sudo nmap -sV -p PUERTO 192.168.1.101 ```
+
+- Paso 2.2. Localizar dónde se define dentro del portero
+   - Ejecuta: ``` sudo grep -rn -w 'NOMBRE' /etc/inetd.conf /etc/xinetd.conf /etc/xinetd.d/ 2>/dev/null ```
    - Verificación: Muestra la ruta exacta y el número de línea donde se define el servicio.
+   - (Si no arrojase nada, busca por si acaso por el número con sudo grep -rn -w 'PUERTO' /etc/inetd.conf /etc/xinetd.conf /etc/xinetd.d/* 2>/dev/null)
 
 3. Parar e impedir a la vez (en Torrent-Vulnerable): 
 - Si el resultado estaba en /etc/inetd.conf:
@@ -487,6 +495,8 @@ PASO 5: Comprobar (en Torrent-Auditor):
 - <img width="521" height="71" alt="image" src="https://github.com/user-attachments/assets/f10a064f-4840-4b5b-bf86-7cebd124c542" />
    - Verificación: el estado del puerto figura como "cerrado" (si pone filtrado solo está oculto con cortafuegos, no apagado).
 
+
+## Puerto
 
 #### Contramedida 2 — Bloquear el ping
 sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
