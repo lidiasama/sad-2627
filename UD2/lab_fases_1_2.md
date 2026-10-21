@@ -101,8 +101,10 @@ Puerto | Servicio | Es necesario | Decisión
 #### Caso 1: Si pone el nombre directo del servicio:
 - Comprueba si tiene script en /etc/init.d/ con: ``` ls /etc/init.d/ | grep NOMBRE ```
    - Comprobar si el nombre no coincide (como jsvc): 
-      - El método más fiable: ```dpkg -S $(which NOMBRE) ``` Te dice directamente a qué paquete y servicio pertenece
-      - O busca si algún script lo invoca: ``` grep -l 'NOMBRE' /etc/init.d/* 2>/dev/null ```
+      - Opción A: (averiguar el paquete con dpkg):
+        1. Prueba con: ``` dpkg -S $(which NOMBRE) ```
+        2. Si 'which' no devuelve nada: averigua su ruta por el PID con: ``` ls -l /proc/PID/exe ```. Y luego consulta el paquete: ```dpkg -S /ruta/obtenida```
+      - Opción B: busca si algún script lo invoca: ``` grep -l 'NOMBRE' /etc/init.d/* 2>/dev/null ```
      - Si SÍ aparece un archivo en init.d: Aplica el **Procedimiento 1**
      - Si NO aparece nada en init.d: Aplica el **Procedimiento 3.**
 
@@ -121,6 +123,10 @@ Puerto | Servicio | Es necesario | Decisión
 3. Parar ahora (en Torrent-Vulnerable):
 - Ejecuta: ``` sudo /etc/init.d/NOMBRE_DEL_SCRIPT stop ```
    - Verificación: devuelve un mensaje de confirmación con [ OK ] y al repetir ´´´ sudo netstat -tulpn | grep ':PUERTO ' ``` la salida queda vacía.
+   - Si devuelve ``` not implemented ``` : el script no implementa la parada. Se fuerza la detención en memoria:
+      - Opción A (por nombre de ejecutable): ```sudo killall -9 NOMBRE_EXACTO_BINARIO ```
+      - Opción B (por PID, infalible): ```sudo kill -9 PID```
+      - Verificación: ```sudo netstat -tulpn | grep ':PUERTO ' ``` debe quedar completamente en blanco.
 
 4. Impedir tras reiniciar (en Torrent-Vulnerable):
 - Ejecuta: ``` sudo update-rc.d -f NOMBRE_DEL_SCRIPT remove ```
@@ -534,13 +540,77 @@ PASO 1: Identifica (en Torrent-Vulnerable):
    - Verificación: En la columna derecha figura explícitamente named
 - Comprueba si tiene script en /etc/init.d/ con: ``` ls /etc/init.d/ | grep named ```
 - Comprobar si el nombre no coincide:
-- 
+   - El método más confiable: ``` dpkg -S $(which named) ``` Te dice directamente a qué paquete y servicio pertenece
+   - <img width="662" height="42" alt="image" src="https://github.com/user-attachments/assets/c2994349-24a9-4ac6-892e-5f2582c50786" />
+
+PASO 2: Averiguar cómo arranca (en Torrent-Vulnerable):
+- Ejecuta: ```ls /etc/init.d/ | grep bind9 ``` y ``` ls -l /etc/rc2.d/ | grep NOMBRE```
+- <img width="729" height="83" alt="image" src="https://github.com/user-attachments/assets/6c96ea56-8a57-41c0-93e7-391e489ec66b" />
+   - Verificación: existe el script en init.d y un enlace simbólico que empieza por S en rc2.d
+ 
+PASO 3: Parar ahora (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo /etc/init.d/bind9 stop ```
+- <img width="639" height="42" alt="image" src="https://github.com/user-attachments/assets/a5ddc0fc-2aab-4a44-ad94-4eaf82fc4c5d" />
+   - Verificación: devuelve un mensaje de confirmación con [ OK ] y al repetir ``` sudo netstat -tulpn | grep ':53 ' ``` la salida queda vacía.
+
+PASO 4: Impedir tras reiniciar (en Torrent-Vulnerable):
+- Ejecuta:sudo update-rc.d -f bind9 remove
+- <img width="675" height="224" alt="image" src="https://github.com/user-attachments/assets/c245b415-972a-47c2-8abd-8ef500b92bf9" />
+   - Verificación: El comando informa de la retirada de enlaces. Al hacer ``` ls /etc/rc2.d/ | grep bind9 ``` ya no devuelva nada.
+
+PASO 5: Comprobar (en Torrent-Auditor):
+- Ejecuta: ``` sudo nmap -p PUERTO 192.168.1.101```
+- <img width="654" height="89" alt="image" src="https://github.com/user-attachments/assets/1a8bb78e-2366-41e2-b875-aa1cba734f91" />+
+   - Verificación: el estado del puerto figura como "cerrado" 
+
+## Puerto 25
+PASO 1: Identifica (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo netstat -tulpn | grep ':53 ' ```
+   - Verificación: En la columna derecha figura explícitamente master
+   - Comprueba si tiene script en /etc/init.d/ con: ``` ls /etc/init.d/ | grep master ```
+   - Comprobar si el nombre no coincide: 
+      - Opción A: (averiguar el paquete con dpkg):
+        1. Prueba con: ``` dpkg -S $(which master) ```
+        2. Si 'which' no devuelve nada: averigua su ruta por el PID con: ``` ls -l /proc/PID/exe ```. Y luego consulta el paquete: ```dpkg -S /ruta/obtenida```
+           <img width="877" height="250" alt="image" src="https://github.com/user-attachments/assets/2786fb30-4416-42fc-ac91-f6a7b346ee6d" />
+
+PASO 2: Averiguar cómo arranca (en Torrent-Vulnerable):
+- Ejecuta: ``` ls /etc/init.d/ | grep postfix ``` y  ```ls -l /etc/rc2.d/ | grep postfix ``` 
+- <img width="792" height="85" alt="image" src="https://github.com/user-attachments/assets/a6d80b3a-dc1f-4395-b74d-be19610e7185" />
+   - Verificación: existe el script en init.dy un enlace simbólico que empieza por S en rc2.d
+
+PASO 3: Parar ahora (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo /etc/init.d/postfix stop```
+- <img width="975" height="43" alt="image" src="https://github.com/user-attachments/assets/352f4811-07af-4195-a15b-eed2c75178a0" />
+   - Verificación: devuelve un mensaje de confirmación con [ OK ] y al repetir ``` sudo netstat -tulpn | grep ':25 ' ``` la salida queda vacía.
+
+PASO 4: Impedir tras reiniciar (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo update-rc.d -f postfix remove ```
+- <img width="709" height="176" alt="image" src="https://github.com/user-attachments/assets/00803d43-bb14-459d-933e-b063c8cbdd67" />
+   - Verificación: El comando informa de la retirada de enlaces. Al hacer ``` ls /etc/rc2.d/ | grep postfix ``` ya no devuelva nada.
+
+PASO 5: Comprobar (en Torrent-Auditor):
+- Ejecuta: ``` sudo nmap -p 25 192.168.1.101 ```
+- <img width="649" height="78" alt="image" src="https://github.com/user-attachments/assets/2ca38d07-fe7a-43a3-8027-d5e22ea53ef1" />
+   - Verificación: el estado del puerto figura como "cerrado" (si pone filtrado solo está oculto con cortafuegos, no apagado).
+
+## FINAL
+<img width="967" height="112" alt="image" src="https://github.com/user-attachments/assets/f150d787-02a6-4675-bcf4-abc4c6fc51d3" />
+
 
 #### Contramedida 2 — Bloquear el ping
-sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
+PASO 1: Aplicar la regla de filtrado con iptables (En Torrent-Vulnerable)
+- Ejecuta ```sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP ```
 
+PASO 2: Comprobar que la regla está activa (En Torrent-Vulnerable)
+- Ejecuta: ``` sudo iptables -L INPUT -v -n ```
+- <img width="1062" height="83" alt="image" src="https://github.com/user-attachments/assets/03bddc9a-2c0d-4c58-83c2-919787d409a1" />
+- Verificación: Deberás ver una línea con target DROP, prot icmp, y en source/destination 0.0.0.0/0.
 
-
+PASO 3:Comprobar desde fuera (En Torrent-Auditor)
+- Ejecuta: ``` ping -c 3 192.168.1.101 ```
+- <img width="696" height="117" alt="image" src="https://github.com/user-attachments/assets/e34a8a17-6bf2-4198-a4fe-dbee09907188" />
+- Resultado esperado: No debe haber respuesta.
 
 ### B4. Medición DESPUÉS
 En Torrent-Auditor:
@@ -551,16 +621,30 @@ Rellenad la tabla:
 
 Aspecto | Antes | Contramedida aplicada | Después
 --------|-------|-----------------------|---------
+Puertos abiertos | 22 puertos abiertos | Contramedida 1: parada de servicios permanentes con /etc/init.d/ (stop + update-rc.d remove), desactivación en /etc/xinetd.d/ (disable = yes) y neutralización de procesos persistentes | Únicamente 2 puertos abiertos
+Servicios / versiones visibles | 22 servicios visibles con sus banners expuestos | Contramedida 1: apagado y deshabilitación selectiva de todos los demonios que no fueran Apache ni OpenSSH (conforme a la suposición de trabajo) | Solo 2 servicios visibles: ssh y Apache
+Respuesta al ping | Responde con latencia visible (0% packet loss) | Contramedida 2: regla de filtrado en cortafuegos | No responde (100% packet loss)
+
+<img width="837" height="744" alt="image" src="https://github.com/user-attachments/assets/215f8eb6-5acc-46ed-8044-dfb790810559" />
+- Las líneas con el símbolo < corresponden a lo que había en antes.txt
+- Las líneas con el símbolo > representan lo que ve nmap ahora en despues.txt
 
 ### B5. Preguntas finales
 1. ¿Qué contramedida ha reducido más lo que ve el atacante? ¿Por qué?
+Apagar y deshabilitar los servicios innecesarios porque elimina de raís la superficie del ataque. Como se puede comprobar en la Medición de Despues, el atacante pasó de ver 22 puertos abiertos con todos sus servicios y versiones a solo 2 puertos.
+Sin embargo la contramedida 2 solo entorpece el descubrimiento inicial pero cualquier atacante que lance un escaneo nmap podría seguir descubriendo todos los servicios abiertos.
+
 2. Si solo ocultáis un banner pero el servicio sigue activo, ¿la vulnerabilidad sigue ahí? Razonad la respuesta.
+Si, la vulnerabilidad sigue presente. Porque ocultar el banner es seguridad por oscuridad. Aunque evita que un escáner como nmap clasifique a simple vista, el código vulnerable y sin parchear sigue en el servidor. Si un atacante lanza a ciegas un exploit el servidor lo procesará igual y funcionará con éxito, independientemente de si esta en el banner o no.
+
 3. Torrent-Vulnerable usa un sistema operativo sin soporte desde hace años. ¿Puede una contramedida de estas sustituir a actualizarlo? ¿Qué haríais en una empresa real?
-4. De todas las contramedidas de las partes A y B, ¿cuáles evitan que el atacante encuentre información y cuáles solo ayudan a detectar que lo están intentando? (Aún no las hemos aplicado todas, pero pensad en cuáles serían de cada tipo.)
+No, ninguna contramedida perimetral o de configuración sustituye la actualización del sistema operativo. Porque aunque se cierren todos los puertos que no se necesitan, los servicios que la empresa necesita (ssh y apache) continúan con versiones con fallos de seguridad.
+En una empresa real habría que migrar y/o actualizar el servidor y las aplicaciones a distribuciones LTS.
 
+5. De todas las contramedidas de las partes A y B, ¿cuáles evitan que el atacante encuentre información y cuáles solo ayudan a detectar que lo están intentando? (Aún no las hemos aplicado todas, pero pensad en cuáles serían de cada tipo.)
+Evitar que encuentre información: apagar y deshabilitar servicios no necesarios, bloquear el ping, ocultar banners y tener cortafuegos en los puertos
+Ayudar a detectar que lo intentan: la regla de registro de escaneos, inspección de registros del sistema y sistemas de detección de intrusos.
 
-Putty -> vt100
-En MS2 -> etc/init.d/ssh -> UseDNS no
 
 Teclado en español:
 sudo loadkeys es
