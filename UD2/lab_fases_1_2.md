@@ -78,8 +78,8 @@ Puerto | Servicio | Es necesario | Decisión
 80 | Apache | Sí | Mantener
 8787 | ruby | No | Apagar
 8180 | jsvc | No | Apagar
-1524 |  | No | Apagar
-21 | | No | Apagar
+1524 | ingreslock | No | Apagar
+21 | ftp | No | Apagar
 5432 | postgres | No | Apagar
 25 | master | No | Apagar
 445 | smbd | No | Apagar
@@ -100,9 +100,11 @@ Puerto | Servicio | Es necesario | Decisión
 
 #### Caso 1: Si pone el nombre directo del servicio:
 - Comprueba si tiene script en /etc/init.d/ con: ``` ls /etc/init.d/ | grep NOMBRE ```
-   - Comprobar si el nombre no coincide (como jsvc): localiza el script que lo invoca con: ``` grep -l 'NOMBRE' /etc/init.d/* ``` 
-      - Si SÍ aparece un archivo en init.d: Aplica el **Procedimiento 1**
-      - Si NO aparece nada en init.d: Aplica el **Procedimiento 3.**
+   - Comprobar si el nombre no coincide (como jsvc): 
+      - El método más fiable: ```dpkg -S $(which NOMBRE) ``` Te dice directamente a qué paquete y servicio pertenece
+      - O busca si algún script lo invoca: ``` grep -l 'NOMBRE' /etc/init.d/* 2>/dev/null ```
+     - Si SÍ aparece un archivo en init.d: Aplica el **Procedimiento 1**
+     - Si NO aparece nada en init.d: Aplica el **Procedimiento 3.**
 
 #### Caso 2: Si pone xinetd o inetd
 - Aplica directamente el **Procedimiento 2**
@@ -496,7 +498,43 @@ PASO 5: Comprobar (en Torrent-Auditor):
    - Verificación: el estado del puerto figura como "cerrado" (si pone filtrado solo está oculto con cortafuegos, no apagado).
 
 
-## Puerto
+## Puerto 21
+PASO 1: Identificar (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo netstat -tulpn | grep ':21 ' ```
+   - Verificación: En la columna derecha figura explícitamente xinetd
+
+PASO 2: Averiguar dónde está su fichero (en Torrent-Vulnerable):
+Paso 2.1: Averiguar el nombre oficial del servicio
+ - Ejecuta: grep -w '21/tcp' /etc/services
+ - <img width="682" height="39" alt="image" src="https://github.com/user-attachments/assets/13664ee2-f698-431f-bcc3-b5cfbc01d5bd" />
+ - La primera columna te da el nombre exacto del servicio
+
+Paso 2.2. Localizar dónde se define dentro del portero
+- Ejecuta: ``` sudo grep -rn -w 'NOMBRE' /etc/inetd.conf /etc/xinetd.conf /etc/xinetd.d/ 2>/dev/null ```
+- <img width="1194" height="58" alt="image" src="https://github.com/user-attachments/assets/791356b7-ce1e-4912-89ed-80835d63c5d0" />
+- Verificación: Muestra la ruta exacta y el número de línea donde se define el servicio. En este caso en inetd.conf esta comentada ya la línea, por lo que quien enciende el servicio es en xinetd. Además vemos que no se llama ftp sino vsftpd
+
+PASO 3: Parar e impedir a la vez (en Torrent-Vulnerable):
+- Si el resultado estaba en /etc/xinetd.d/NOMBRE:
+   - Ejecuta: ``` sudo cp /etc/xinetd.d/vsftpd /root/vsftpd.bak```, ```sudo sed -i 's/disable.*/disable = yes/' /etc/xinetd.d/vsftpd ``` y ```sudo /etc/init.d/xinetd reload```
+   - <img width="822" height="19" alt="image" src="https://github.com/user-attachments/assets/0f5e7330-ae83-48a7-abaf-973aeefb1bb8" />
+   - <img width="957" height="22" alt="image" src="https://github.com/user-attachments/assets/4c484618-6d7c-4c2f-bb6e-ea5f29b00395" />
+   - <img width="979" height="43" alt="image" src="https://github.com/user-attachments/assets/e96048c9-7d7f-43f1-b246-fb533cfa4475" />
+   - Comprueba el cambio con: ```grep -H disable /etc/xinetd.d/SERVICIO```
+   - <img width="740" height="40" alt="image" src="https://github.com/user-attachments/assets/86544611-2b3c-4e01-b142-d042272a3b3e" />
+
+PASO 4: Comprobar (en Torrent-Auditor):
+- Ejecuta:``` sudo nmap -p PUERTO 192.168.1.101```
+- <img width="689" height="85" alt="image" src="https://github.com/user-attachments/assets/8704650d-781a-47d1-8207-7b34c540f00e" />
+- Verifica que el puerto objetivo salga en estado "closed".
+
+## puerto 53
+PASO 1: Identifica (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo netstat -tulpn | grep ':53 ' ```
+   - Verificación: En la columna derecha figura explícitamente named
+- Comprueba si tiene script en /etc/init.d/ con: ``` ls /etc/init.d/ | grep named ```
+- Comprobar si el nombre no coincide:
+- 
 
 #### Contramedida 2 — Bloquear el ping
 sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
