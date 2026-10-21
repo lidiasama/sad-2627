@@ -1,4 +1,4 @@
-# Laboratorio fases 1 y 2 — Estudio Torrent
+<img width="752" height="55" alt="image" src="https://github.com/user-attachments/assets/2ad7009d-8a0f-42db-b878-d0089cc1d4e4" /># Laboratorio fases 1 y 2 — Estudio Torrent
 
 ## A1. whois y nslookup
 No es necesario
@@ -454,6 +454,85 @@ PASO 6: Comprobar (en Torrent-Auditor):
 - Ejecuta: ```sudo nmap -p 3306 192.168.1.101```
 - <img width="656" height="253" alt="image" src="https://github.com/user-attachments/assets/eb7394a2-f438-4257-9417-a943ae2c4668" />
    - Verificación: el estado del puerto figure como "closed" (si pone filtered solo está oculto con cortafuegos, no apagado).
+ 
+### Puerto 139
+Diagnóstico inicial: En Torrent-Vulnerable, consulta el puerto:
+- Ejecuta: ```sudo netstat -tulpn | grep ':139 ' ```
+   - PID: 4365
+   - Nombre: smbd
+
+PASO 1: Comprueba si tiene script en /etc/init.d/ 
+- Ejecuta: ```ls /etc/init.d/ | grep smbd ```
+- Comprobar si el nombre no coincide (como jsvc): localiza el script que lo invoca con: ```grep -l 'smbd' /etc/init.d/*```
+- <img width="653" height="52" alt="image" src="https://github.com/user-attachments/assets/14433bc2-a898-4b4a-aebe-908b3630ce51" />
+   - Nombre: samba
+
+PASO 2: Averiguar cómo arranca (en Torrent-Vulnerable):
+- Ejecuta: ```ls /etc/init.d/ | grep samba ``` y ``` ls -l /etc/rc2.d/ | grep samba ```
+   -<img width="720" height="87" alt="image" src="https://github.com/user-attachments/assets/40923753-5712-422b-85c2-af4b70569d02" />
+   - Verificación: existe el script en init.dy un enlace simbólico que empieza por S en rc2.d
+
+PASO 3: Parar ahora (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo /etc/init.d/samba stop ```
+- <img width="726" height="62" alt="image" src="https://github.com/user-attachments/assets/55e32ee0-c7a2-449f-b8d5-fbe4a66c2176" />
+   - Verificación: devuelve un mensaje de confirmación con [ OK ] y al repetir ´´´ sudo netstat -tulpn | grep ':139 ' ``` la salida queda vacía.
+
+PASO 4: Impedir tras reiniciar (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo update-rc.d -f samba remove ```
+- <img width="690" height="217" alt="image" src="https://github.com/user-attachments/assets/a8b2aa1c-1847-40bc-bd14-8bfe6b85c25f" />
+   - Verificación: El comando informa de la retirada de enlaces. Al hacer ls /etc/rc2.d/ | grep samba ya no devuelva nada
+
+PASO 5: Comprobar (en Torrent-Auditor):
+- Ejecuta:sudo nmap -p 139 192.168.1.101
+- <img width="521" height="71" alt="image" src="https://github.com/user-attachments/assets/f10a064f-4840-4b5b-bf86-7cebd124c542" />
+   - Verificación: el estado del puerto figura como "cerrado" (si pone filtrado solo está oculto con cortafuegos, no apagado).
+
+## Puerto 5900
+Diagnóstico inicial: 
+PASO 1: En Torrent-Vulnerable, consulta el puerto: 
+- Ejecuta: '''sudo netstat -tulpn | grep 5900
+- <img width="1001" height="42" alt="image" src="https://github.com/user-attachments/assets/d2c4f84d-6020-4110-a13b-5d0c84cf02de" />
+   - PID: 4501
+   - Nombre: Xtightvnc
+
+PASO 2: Comprueba si tiene script en /etc/init.d/ 
+- Ejecuta: ``` ls /etc/init.d/ | grep Xtightvnc ```
+- Y comprueba si el nombre no coincide con ```grep -l 'Xtightvnc' /etc/init.d/*
+- <img width="752" height="55" alt="image" src="https://github.com/user-attachments/assets/07180086-342c-4f4a-8933-5447c5861419" />
+
+PASO 3: Averiguar de dónde arranca (en Torrent-Vulnerable)
+- Paso 3.1: Comprueba que no existe en init.d
+   - Ejecuta: ``` ls /etc/init.d/ | grep Xtightvnc ```
+   - <img width="708" height="37" alt="image" src="https://github.com/user-attachments/assets/efa14057-6872-41bc-ab75-e3e047267c7a" />
+   - Verificación: la salida está totalmente vacía.
+- Paso 3.2: Busca la línea de arranque en /etc/rc.local 
+   - Ejecuta: ```grep -n 'Xtightvnc' /etc/rc.local```
+- Paso 3.3: Si no saliera en rc.local, compruebe crontab
+   - Ejecuta ```sudo crontab -l | grep 'Xtightvnc'```
+- Paso 3.4: Si no aparece en ninguno de los anteriores, verifica si se lanzó a mano en la sesión
+   - Ejecuta: ```ps -ef --forest | grep -B 2 'Xtightvnc'```
+   - <img width="995" height="241" alt="image" src="https://github.com/user-attachments/assets/00a9586d-6c8f-4869-834a-c31eb7f991f8" />
+
+PASO 4: Parar e impedir (en Torrent-Vulnerable): 
+- Paso 4.1. Comentar la orden de arranque con copia de seguridad y sed:
+   - Si se lanzó a mano debemos tener el PID y qué terminal o usuario lo inició. Para ello...
+      - Como no hay script /etc/init.d/ para hacer stop, la orden directa en Linux para terminar un proceso interactivo es matarlo por su PID o por su nombre:
+      - Ejecutamos: ```sudo kill -9 4501```
+      - <img width="681" height="57" alt="image" src="https://github.com/user-attachments/assets/383c13bf-7eac-4f7b-ba2c-1b921323796b" />
+      - Verificación: Ejecuta ```sudo netstat -tulpn | grep ':5900 ' ``` y confirma que la salida queda completamente vacía.
+    
+- Paso 4.2. Parar el proceso y asegurar que no vuelve
+   - Ejecuta: ```sudo reboot```
+ 
+PASO 5: Comprobar tras reiniciar:
+- Dentro (Vulnerable a Torrent):
+   - Ejecuta: ``` sudo netstat -tulpn | grep ':5900 ' ```
+   - 
+   - Verificación: Salida vacía
+- Fuera (Torrent-Auditor):
+   - Ejecuta: ```sudo nmap -p 5900 192.168.1.101```
+   - 
+   - Verificación: Estado cerrado
 
 #### Contramedida 2 — Bloquear el ping
 sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
