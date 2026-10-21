@@ -100,7 +100,7 @@ Puerto | Servicio | Es necesario | Decisión
 
 #### Caso 1: Si pone el nombre directo del servicio:
 - Comprueba si tiene script en /etc/init.d/ con: ``` ls /etc/init.d/ | grep NOMBRE ```
-   - Si el nombre no coincide (como jsvc): localiza el script que lo invoca con: ``` grep -l 'NOMBRE' /etc/init.d/* ``` 
+   - Comprobar si el nombre no coincide (como jsvc): localiza el script que lo invoca con: ``` grep -l 'NOMBRE' /etc/init.d/* ``` 
       - Si SÍ aparece un archivo en init.d: Aplica el **Procedimiento 1**
       - Si NO aparece nada en init.d: Aplica el **Procedimiento 3.**
 
@@ -179,10 +179,18 @@ Paso 3.1. Comentar la orden de arranque con copia de seguridad y sed:
 - Si estaba en /etc/rc.local: ``` sudo cp /etc/rc.local /root/rc.local.bak```, ```sudo sed -i 's/^.*NOMBRE/#&/' /etc/rc.local ```
    - Verificación: ejecuta cat /etc/rc.local | grep NOMBRE y confirma que la línea empieza por #
  
-- Si estaba en crontab: ``` sudo crontab -e ```-> Pon # delante de la línea @reboot, guarda y sal
+- Si estaba en crontab: ``` sudo crontab -e ```-> Pon # delante de la línea NOMBRE, guarda y sal
+
+- Si se lanzó a mano debemos tener el PID y qué terminal o usuario lo inició. Para ello...
+   - Ejecutamos: ```ps -ef --forest | grep -B 2 'NOMBRE'```
+   - Como no hay script /etc/init.d/ para hacer stop, la orden directa en Linux para terminar un proceso interactivo es matarlo por su PID o por su nombre:
+   - Ejecutamos: ```sudo kill -9 PID``` o ```sudo killall -9 NOMBRE```
+   - Verificación: Ejecuta sudo netstat -tulpn | grep ':PUERTO ' y confirma que la salida queda completamente vacía.
 
 Paso 3.2. Parar el proceso y asegurar que no vuelve
 - Ejecuta: ``` sudo reboot ```
+
+- 
 
 4. Comprobar tras reiniciar:
 - Dentro (Torrent-Vulnerable): ```sudo netstat -tulpn | grep ':PUERTO ' ``` 
@@ -381,21 +389,71 @@ PASO 1: En Torrent-Vulnerable, consulta el puerto:
 - Ejecuta: '''sudo netstat -tulpn | grep 6697
 <img width="958" height="43" alt="image" src="https://github.com/user-attachments/assets/36bb22de-9f2f-45de-82d7-a96578a4f11d" />
 
-- PID: 4472 y Nombre del programa unrealircd
+- Nombre del programa unrealircd
 
 PASO 2: Comprueba si tiene script en /etc/init.d/ 
 - Ejecuta: ``` ls /etc/init.d/ | grep NOMBRE ```
 <img width="740" height="41" alt="image" src="https://github.com/user-attachments/assets/1975e3b2-578d-4112-b3c6-b9cc190f1916" />
 
 PASO 3: Averiguar de dónde arranca (en Torrent-Vulnerable)
-- Paso 2.1: Comprueba que no existe en init.d ejecutando: ``` ls /etc/init.d/ | grep NOMBRE ```
+- Paso 2.1: Comprueba que no existe en init.d ejecutando: ``` ls /etc/init.d/ | grep unrealircd ```
 <img width="755" height="45" alt="image" src="https://github.com/user-attachments/assets/bbfcac17-1c25-46e0-956f-0a9ab9581c62" />
 
-- Paso 2.2: Busca la línea de arranque en /etc/rc.local ejecutando: ``` grep -n 'NOMBRE' /etc/rc.local ```
+- Paso 2.2: Busca la línea de arranque en /etc/rc.local ejecutando: ``` grep -n 'unrelircd' /etc/rc.local ```
   <img width="742" height="40" alt="image" src="https://github.com/user-attachments/assets/186de26f-021c-4bd9-8407-bb45720228c5" />
 
 PASO 4: Parar e impedir (en Torrent-Vulnerable):
+- Paso 4.1. Comentar la orden de arranque con copia de seguridad y sed:
+   - ``` sudo cp /etc/rc.local /root/rc.local.bak```
+   - ```sudo sed -i 's/^.*unrealircd/#&/' /etc/rc.local ```
+   - <img width="820" height="42" alt="image" src="https://github.com/user-attachments/assets/4b1100e2-f0f5-4e14-8692-09224bae8b25" />
+   - Verificación: ejecuta ```cat /etc/rc.local | grep unrealircd ``` y confirma que la línea empieza por #
+   - <img width="747" height="45" alt="image" src="https://github.com/user-attachments/assets/c2652ef2-b751-43e6-8170-c129fe20965f" />
 
+- Paso 4.2. Parar el proceso y asegurar que no vuelve
+   - Ejecuta: ``` sudo reboot ```
+ 
+PASO 5: Comprobar tras reiniciar:
+- Dentro (Torrent-Vulnerable):
+   - Ejecuta ```sudo netstat -tulpn | grep ':6697 '  ```
+   - <img width="722" height="41" alt="image" src="https://github.com/user-attachments/assets/810313ee-8b83-4f73-add4-dda1d890e7ec" />
+   - Verificación: Salida vacía.
+ 
+- Fuera (Torrent-Auditor):
+   - Ejecuta: ```sudo nmap -p 6697 192.168.1.101```
+   - <img width="681" height="183" alt="image" src="https://github.com/user-attachments/assets/61d2f818-c21e-4b80-b3c2-aa2228c9e812" />
+   - Estado closed
+
+### Puerto 3306 
+PASO 1: Diagnóstico inicial
+- En Torrent-Vulnerable, consulta el puerto: ``` sudo netstat -tulpn | grep ':3306 '```
+- <img width="935" height="45" alt="image" src="https://github.com/user-attachments/assets/7c255be8-e499-43b0-967d-25376f72d0b7" />
+
+PASO 2: Comprueba si tiene script en /etc/init.d/ 
+- Ejecuta: ``` ls /etc/init.d/ | grep mysqld ```
+- <img width="665" height="38" alt="image" src="https://github.com/user-attachments/assets/9639b134-25ef-4e8f-b876-aa0d5be88abd" />
+- Si el nombre no coincide (como jsvc): localiza el script que lo invoca con: ```grep -l 'NOMBRE' /etc/init.d/* ```
+   - <img width="670" height="42" alt="image" src="https://github.com/user-attachments/assets/989c86ad-3a9e-4717-b697-79c6bffe383c" />
+
+PASO 3: Averiguar cómo arranca (en Torrent-Vulnerable):
+- Ejecuta:``` ls /etc/init.d/ | grep mysql ``` y  ```ls -l /etc/rc2.d/ | grep mysql ```
+- <img width="910" height="165" alt="image" src="https://github.com/user-attachments/assets/92a4e948-cc84-477a-a560-d206cc5608d2" />
+   - Verificación: existe el script en init.d y 3 enlaces simbólicos que empieza por S en rc2.d
+ 
+PASO 4: Parar ahora (en Torrent-Vulnerable):
+- Ejecuta: ``` sudo /etc/init.d/mysql stop ```
+- <img width="1040" height="47" alt="image" src="https://github.com/user-attachments/assets/8eee6457-5504-4d46-8046-8d734a68d7f6" />
+   - Verificación: devuelve un mensaje de confirmación con [ OK ] y al repetir ´´´ sudo netstat -tulpn | grep ':3306 ' ``` la salida queda vacía.
+
+PASO 5: Impedir tras reiniciar (en Torrent-Vulnerable):
+- Ejecuta: ```sudo update-rc.d -f mysql remove ```
+- <img width="712" height="187" alt="image" src="https://github.com/user-attachments/assets/b52a63a8-91d3-45dd-8c53-65370a3b469c" />
+   - Verificación: El comando informa de la retirada de enlaces. Al hacer ls /etc/rc2.d/ | grep NOMBRE ya no devuelva nada.
+ 
+PASO 6: Comprobar (en Torrent-Auditor):
+- Ejecuta: ```sudo nmap -p 3306 192.168.1.101```
+- <img width="656" height="253" alt="image" src="https://github.com/user-attachments/assets/eb7394a2-f438-4257-9417-a943ae2c4668" />
+   - Verificación: el estado del puerto figure como "closed" (si pone filtered solo está oculto con cortafuegos, no apagado).
 
 #### Contramedida 2 — Bloquear el ping
 sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
