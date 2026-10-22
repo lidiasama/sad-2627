@@ -186,6 +186,9 @@ Si ClamAV marcara por error un fichero de ERP importante y este se eliminara dir
     - Hidden file found: /etc/.updated: presencia de un archivo oculto utilizado como marca de tiempo de actualización del sistema
   - ¿Son preocupantes o no?
     - No son preocupantes: se trata en su totalidad de falsos positivos.
+    - Los avisos de postfix y postdrop: Aparecieron porque hace unos minutos, al instalar rkhunter, se desplegó el paquete postfix como dependencia (la pantalla azul de configuración que te apareció antes). El instalador oficial del sistema creó de forma legítima ese usuario y grupos de servicio para operar el correo local.
+    - El script /usr/bin/lwp-request: En las versiones modernas de Ubuntu/Debian, lwp-request se distribuye oficialmente como un script ejecutable en lenguaje Perl dentro del paquete estándar libwww-perl, por lo que es el comportamiento esperado de la distribución.
+    - Los archivos ocultos en /etc: Tanto .resolv.conf.systemd-resolved.bak como .updated son archivos auxiliares legítimos generados por systemd para gestionar el servicio DNS local y registrar marcas temporales del gestor de paquetes.
   
 - --propupd guarda una referencia (los hashes de los ficheros importantes). Es la misma idea del hash del sistema de la fase 4.
 - --rwo muestra solo avisos (warnings).
