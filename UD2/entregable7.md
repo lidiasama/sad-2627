@@ -209,58 +209,103 @@ Contestad por escrito, antes de ejecutarlo:
   - cat: imprime por pantalla el texto completo del script
     
 2. ¿Crea ficheros? ¿Abre puertos? ¿Modifica algo para sobrevivir a un reinicio?
-  - 
+  - Sí, crea el directorio oculto /tmp/.cache_sistema mediante la instrucción ```mkdir -p "$DIR"
+  - Genera el archivo /tmp/.cache_sistema/estalo.log escribiendo la fecha y la palabra "activo" mediante la instrucción ``` echo "$(date) - activo" >> "$DIR/estado.log" ```
+  - Se autocopia a si mismo con el nombre /tmp/.cache_sistema/actualizador.sh usando ``` cp "$0" "$DIR/actualizador.sh" ```
+  - También abre puertos, comprueba si el puerto está libre con ``` ss -tln ```y levanta un servidor HTTP en segundo plano en el puerto 8081 usando Python.
+  - Y también instala persistencia programada en el archivo de tareas del usuario, añade la regla ``` @reboot /bin/bash /tmp/.cache_sistema/actualizador.sh ```para que el script copiado se ejecute automáticamente cada vez que el sistema se inicie.
+    
 3. Si fuera un .exe binario, ¿qué habría que hacer en su lugar? (Pista: no se puede leer, habría que usar herramientas como strings o un desensamblador.)
-  - 
+  - Se tendrían que usar técnicas de análisis estático de binarios como inspección de cadenas de texto con strings para extraer secuencias legibles, descubriendo rutas de archivos, direcciones IP, puertos o llamadas al sistema. Análisis de cabeceras y librerias para revisar que funciones de red, ficheros o procesos de la API del sistema importa el binario. 
+
+<img width="786" height="52" alt="image" src="https://github.com/user-attachments/assets/e488e012-219b-47c1-8664-ab571b8f8405" />
+<img width="797" height="52" alt="image" src="https://github.com/user-attachments/assets/39f026de-549c-4917-93b8-1193e469f543" />
+<img width="901" height="621" alt="image" src="https://github.com/user-attachments/assets/8d433ea4-74fd-480a-96fb-110e56c160eb" />
 
 ## Parte F · Análisis dinámico: observar qué hace (CE d)
 1. Desactivad el adaptador NAT de la VM (o pasadla a red interna sin otros equipos).
+<img width="1002" height="492" alt="image" src="https://github.com/user-attachments/assets/486bf04c-0e64-4aea-9be2-c3400364cd94" />
+
 2. Haced un snapshot: antes-de-ejecutar.
+<img width="997" height="347" alt="image" src="https://github.com/user-attachments/assets/6483dac8-be61-45ca-810f-3e1664dfc6ca" />
+
 3. Tomad una foto del estado inicial (guardad la salida en ficheros para comparar luego):
 
 ```ps aux > ~/antes_procesos.txt```
 ```ss -tulpn > ~/antes_puertos.txt```
 ```crontab -l > ~/antes_cron.txt 2>&1```
 ```ls -la /tmp > ~/antes_tmp.txt```
+<img width="782" height="205" alt="image" src="https://github.com/user-attachments/assets/2d381cda-615f-428c-8e89-d02c7529cdbc" />
+
 
 4. Ejecutad el programa como usuario normal (no como root):
 ```bash sospechoso.sh```
+<img width="430" height="26" alt="image" src="https://github.com/user-attachments/assets/a9c6a892-1060-4267-8d56-fbaab8816044" />
 
 5. Repetid la foto y comparad:
 ```ps aux > ~/despues_procesos.txt```
 ```ss -tulpn > ~/despues_puertos.txt```
 ```crontab -l > ~/despues_cron.txt 2>&1```
 ```ls -la /tmp > ~/despues_tmp.txt```
+<img width="485" height="92" alt="image" src="https://github.com/user-attachments/assets/349b4ef3-2ca4-4735-b309-6990433f8da1" />
 
 ```diff ~/antes_procesos.txt ~/despues_procesos.txt```
+<img width="900" height="52" alt="image" src="https://github.com/user-attachments/assets/f16e7fee-0dd9-4d45-85c1-0ad421188a9d" />
+
 ```diff ~/antes_puertos.txt ~/despues_puertos.txt```
+<img width="801" height="442" alt="image" src="https://github.com/user-attachments/assets/b52bceee-503a-41b3-be27-9fa9d26eb0d0" />
+
 ```diff ~/antes_cron.txt ~/despues_cron.txt```
+<img width="506" height="100" alt="image" src="https://github.com/user-attachments/assets/5bdc8de3-5ef7-4d5d-88a4-f1187e0e7a34" />
+
 ```diff ~/antes_tmp.txt ~/despues_tmp.txt```
+<img width="530" height="165" alt="image" src="https://github.com/user-attachments/assets/740128a0-3a3a-425a-a1f0-2a0155190fa0" />
 
 6. Rellenad el informe de comportamiento:
+
 Qué hace | Evidencia (comando y salida) | ¿Qué fase del ataque recuerda?
 --------|-------------------------------|-----------------------------
-Crea ficheros o carpetas |
-Abre algún puerto o proceso |
-Intenta persistir |
+Crea ficheros o carpetas | Comando: diff ~/antes_tmp.txt ~/despues_tmp.txt Salidas: > drwxrwxr-x 2 linux linux 4096 Oct 22 21:25 .cache_sistema | Fase 4: Mantener el acceso o persistencia y Fase 5: Borrar huellas. El script crea un directorio oculto en /tmp y copia el archivo malicioso con un nombre inocente (actualizador.sh) para ocultarse
+Abre algún puerto o proceso | Comando: diff ~/antes_puertos.txt ~/despues_puertos.txt Salida: > tcp LISTEN 0 5 127.0.0.1:8081 0.0.0.0:* users:(("python3",pid=3305,fd=3)) Y en Comando: diff ~/antes_procesos.txt ~/despues_procesos.txt Salida: > linux 3305 ... python3 -m http.server 8081 --bind 127.0.0.1 --directory /tmp/.cache_sistema | Fase 3: Obtener acceso
+Intenta persistir | Comando: diff ~/antes_cron.txt ~/despues_cron.txt Salida: > @reboot /bin/bash /tmp/.cache_sistema/actualizador.sh | Fase 4: Mantener el acceso o persistencia. Inyecta una entrada programada para asegurar que el programa sobreviva a los reinicios de la máquina sin depender de la sesión abierta.
 
 7. Comprobad la persistencia: reiniciad la VM y volved a mirar si el comportamiento reaparece.
+```ss -tulpn | grep ':8081 ' ```
+``` crontab -l ```
+- Se confirma que el puerto 8081 vuelve a estar en LISTEN y el script reaparece ejecutándose automáticamente gracias a la instrucción @reboot del crontab
 
-8. Erradicación: documentad cómo lo eliminaríais (parar el proceso, quitar la entrada de arranque, borrar los ficheros) y verificad con los mismos comandos del paso 3 que ha desaparecido. Después podéis volver al snapshot.
+9. Erradicación: documentad cómo lo eliminaríais (parar el proceso, quitar la entrada de arranque, borrar los ficheros) y verificad con los mismos comandos del paso 3 que ha desaparecido. Después podéis volver al snapshot.
+- Finaliza cualquier proceso de Python asociado a ese servidor en segundo plano con  ``` pkill -f "http.server 8081" ```
+- Elimina por completo las tareas programadas del usuario actual: ``` crontab -r ```
+- Borra el directorio oculto junto con actualizador.sh y estado.log ```rm -rf /tmp/.cache_sistema ```
+
+  <img width="512" height="71" alt="image" src="https://github.com/user-attachments/assets/61baa6a9-b0e1-4317-9164-9191517b8634" />
+
+- Verificación de la erradicación:
+  - ```crontab -l``` responderá: no crontab for linux
+    
+    <img width="357" height="42" alt="image" src="https://github.com/user-attachments/assets/ec6f424c-69a4-4499-9739-f99fc145b7a7" />
+
+  - ```ls -la /tmp/.cache_sistema``` responderá: ls: cannot access '/tmp/.cache_sistema': No such file or directory
+
+   <img width="691" height="47" alt="image" src="https://github.com/user-attachments/assets/feed49e8-8c51-41b1-9f44-20a57afe567f" />
+
 
 - Pregunta F: Habéis encontrado el comportamiento comparando "antes" y "después". ¿Cuál es el equivalente en un servidor real de Torrent si nadie hizo la foto inicial? ¿Qué relación tiene con el inventario de servicios que hicisteis en la práctica anterior?
+- Si nadie hizo una foto inicial en el servidor real de Torrent, el equivalente sería apoyarse en sistemas de monitorización de integridad de ficheros (FIM) que alertan sobre cualquier creación o modificación de archivos fuera de actualizaciones legítimas. También podríamos comprobar la integridad del gestor de paquetes del sistema operativo para destapar binarios manipulados o a escaneos externos como nmap desde otro equipo de la red para detectar puertos de escucha que un rootkit pudiera intentar ocultar.
+- Esto se relaciona porque el inventario estableció la línea de lo legítimo: se determinó que el servidor solo debía mantener operativos los puertos 80 y 22. Por lo que al contar con una política estricta y documentada no sería necesario comparar dos fotos, ya que la aparición de cualquier puerto no autorizado o cualquier tarea nueva infringe la línea base y se clasifica como un incidente de seguridad
 
 ## Parte G · Preventivo o paliativo (CE c, e)
 Clasificad cada medida:
 
 Medida | Preventiva | Paliativa
 ------|-------------|-----------
-Mantener el sistema actualizado		
-ClamAV escaneando a demanda un disco		
-Descargar software solo de repositorios oficiales		
-Copia de seguridad semanal desconectada de la red		
-Cuenta de usuario sin privilegios de administrador		
-rkhunter tras sospechar una intrusión		
-Formación del personal contra el phishing
+Mantener el sistema actualizado	| X
+ClamAV escaneando a demanda un disco | | X
+Descargar software solo de repositorios oficiales	| X
+Copia de seguridad semanal desconectada de la red	| | X
+Cuenta de usuario sin privilegios de administrador | X	
+rkhunter tras sospechar una intrusión		| | X
+Formación del personal contra el phishing | X
 
 
