@@ -204,8 +204,14 @@ Ya sabéis que el análisis estático examina un fichero sin ejecutarlo. Probadl
 
 Contestad por escrito, antes de ejecutarlo:
 1. ¿Qué crees que hace cada línea?
+  - file: determina el tipo de archivo analizando su cabecera, independientemente de la extensión.
+  - sha256sum: calcula la huella digital criptográfica única del contenido del archivo
+  - cat: imprime por pantalla el texto completo del script
+    
 2. ¿Crea ficheros? ¿Abre puertos? ¿Modifica algo para sobrevivir a un reinicio?
+  - 
 3. Si fuera un .exe binario, ¿qué habría que hacer en su lugar? (Pista: no se puede leer, habría que usar herramientas como strings o un desensamblador.)
+  - 
 
 ## Parte F · Análisis dinámico: observar qué hace (CE d)
 1. Desactivad el adaptador NAT de la VM (o pasadla a red interna sin otros equipos).
