@@ -16,6 +16,7 @@ Alta | 8.9 - 7.0 |  4
 Media | 6.9 - 4.0 |  11
 Baja | 3.9 - 0.1 |  6
 Informativa | 0.0 | 110
+
 <img width="717" height="87" alt="image" src="https://github.com/user-attachments/assets/0cafedc6-92d1-4b98-bccd-b024a0cb1210" />
 
 
@@ -37,6 +38,23 @@ Vulnerabilidad: VNC Server 'password' Password.
 
 Referencia CVE o nombre del plugin de Nessus que la detectó: Plugin ID 61708
 
+Severidad y puntuación: Crítica (Critical), con puntuación base CVSS v2.0 de 10.0.   
+Vector CVSS v2.0: CVSS2#AV:N/AC:L/Au:N/C:C/I:C/A:C.   
+
+Métrica | Sigla y Valor | Significado 
+--------|--------------|-------------
+Attack Vector |AV:N | Network (red)
+Attack Complexity | AC:L (eq PR:N) | Low (baja)
+Authentication (v2) / Privileges (v3) | Au:N | None
+User Interaction | (implicito N) | None
+Confidencialidad | C:C | Complete
+Integridad | I:C | Complete
+Disponibilidad | A:C | Complete
+
+- La etiqueta Exploited by Nessus: true en el panel de detalles demuestra que el hallazgo no es un falso positivo teórico, sino un fallo validado en tiempo real al lograr autenticación exitosa sobre el puerto 5900
+
+<img width="1169" height="691" alt="image" src="https://github.com/user-attachments/assets/2bc0e6d5-c4e0-44ce-95a4-99264bc70065" />
+
 ## 6. Recomendaciones
 1. Modificar TODAS las contraseñas débiles y establecer una política de contraseñas robustas, prohibiendo anotarlas.
 2. Parar y deshabilitar los servicios y puertos que no sean utilizados en el día a día.
@@ -46,3 +64,4 @@ Referencia CVE o nombre del plugin de Nessus que la detectó: Plugin ID 61708
 Si que lo firmaría, pero con ciertas condiciones. La idea de contratar una empresa es para mantener la infraestructura, pero con el estado que está el servidor un mantenimiento normal no sirve de mucho. Porque este sería para cuidar un sistema que funciona bien.
 
 Por eso, aceptaría firmar si se cumplen las siguientes condiciones: primero se debe hacer un trabajo previo de puesta a punto para migrar el sistema a una versión más actualizada con soporte, y realizar ciertas medidas de seguridad. Y segundo, que el segundo contrato de mantenimiento no se comience hasta que no se realice otro escaneo con Nessus y se compruebe que las vulnerabilidades se han solucionado.
+
