@@ -78,13 +78,13 @@ TOTP (Time-based One-Time Password) genera un código de 6 dígitos que cambia c
 - ```sudo apt install libpam-google-authenticator ```
 
 ### 2.3 Generar el secreto (lo hace cada usuario, con su propia cuenta)
-Conectado ya como el usuario (por ejemplo carlos, del grupo supervisores), ejecuta:
+Conectado ya como el usuario (por ejemplo carlos ```su -l carlos```, del grupo supervisores), ejecuta:
 - ``` google-authenticator ```
 El asistente hace varias preguntas; esto es lo que responderéis y por qué:
 Pregunta | Respuesta recomendada
 ---------|--------------------
 ¿Tokens time-based? | y - es el estándar TOTP
-¿Actualizar ~/.google_authenticator? | y
+¿Actualizar ~/.google_authenticator? | y - guarda la clave en su directorio personal 
 ¿Impedir que el mismo código se use dos veces? | y - evita reutilizar un código capturado
 ¿Ampliar la ventana de validez? | n - por defecto ya tolera pequeños desfases de reloj
 ¿Limitar los intentos (rate-limit? | y - 3 intentos cada 30 seg frena la fuerza bruta sobre el código
