@@ -23,17 +23,19 @@ maxrepeat | 3 | Máximo de caracteres idénticos seguidos
 enforce_for_root | (sin valor, solo activarla) | Sin esta linea, root puede saltarse toda la política
 
 ### 1.3 Práctica guiada — aplicar la política
-1. Edita /etc/security/pwquality.conf con sudo y fija los valores de la tabla anterior (descomenta la línea o añádela si no existe).
+1. Edita el archivo de directivas con ``` sudo /etc/security/pwquality.conf ``` y fija los valores de la tabla anterior (descomenta la línea o añádela si no existe).
   <img width="822" height="682" alt="image" src="https://github.com/user-attachments/assets/6767084e-4787-4f10-adee-6f3fb6a84ac1" />
   <img width="856" height="625" alt="image" src="https://github.com/user-attachments/assets/88eb3c56-1987-40e1-888a-1eec58299374" />
 
 2. Comprueba que la línea pam_pwquality.so está presente en /etc/pam.d/common-password.
   <img width="872" height="492" alt="image" src="https://github.com/user-attachments/assets/fa871340-f4e7-4e64-b702-8c910077ed0c" />
 
-3. Como el usuario hugo (grupo operarios, creado ayer en la práctica de ACL), intenta cambiarle la contraseña por algo débil y observa el rechazo (1234)
+3. Como el usuario hugo (grupo operarios, creado ayer en la práctica de ACL), intenta cambiarle la contraseña por algo débil y observa el rechazo (Escribe 1234)
   <img width="777" height="70" alt="image" src="https://github.com/user-attachments/assets/73444a8a-0f5f-4271-b1ce-c21fd681378c" />
 
-4. Repite con una contraseña que cumpla la política y confirma que esta vez se acepta (Holaquetal123.)
+  - Verificación: El sistema la rechaza.
+
+4. Repite con una contraseña que cumpla la política y confirma que esta vez se acepta (Escribe: Holaquetal123.)
   <img width="710" height="138" alt="image" src="https://github.com/user-attachments/assets/bc1edf6b-f074-41bb-88f1-68e836bee851" />
 
 5. Como root, intenta ponerle a root mismo una contraseña débil: sin enforce_for_root se aceptaría sin más. Actívala y repite la prueba. (1234)
@@ -54,14 +56,13 @@ Opción | Qué hace
 -l | Lista la política actual aplicada a un usuario
 
 Como ingeniería y supervisores tienen permisos de escritura sobre planos/ (ved la práctica de ACL), es razonable que su contraseña caduque antes que la de operarios:
-1. Aplicar a ingeniería y supervisores (60 días)
+1. Aplica la caducidad a los usuarios de ingeniería y supervisores (60 días)
 - ``` for u in nestor victor lucia carlos mary john; do ```
 - ```sudo chage -m 1 -M 60 -W 7 $u ```
 - ``` done```
   <img width="752" height="67" alt="image" src="https://github.com/user-attachments/assets/cc5055ea-6a22-42f6-95e1-6d377c1353ba" />
-
-
-3. Aplicar a operarios (90 días)
+  
+2. Aplica la caducidad a los usuarios de operarios (90 días)
 - ``` for u in alberto oscar hugo; do ```
 - ``` sudo chage -m 1 -M 90 -W 7 $u ```
 - ``` done ```
@@ -75,12 +76,15 @@ Como ingeniería y supervisores tienen permisos de escritura sobre planos/ (ved 
 TOTP (Time-based One-Time Password) genera un código de 6 dígitos que cambia cada 30 segundos, a partir de un secreto compartido entre el servidor y tu app (Google Authenticator, Authy, FreeOTP...) y la hora actual. Aunque alguien robe tu contraseña, sin ese secreto no puede generar el código — por eso es un segundo factor («algo que tienes»), no solo «algo que sabes».
 
 ### 2.2 Instalar el módulo PAM
-- ```sudo apt install libpam-google-authenticator ```
+Ejecuta con privilegios administrativos en el sistema:
+- ```sudo apt install -y libpam-google-authenticator ```
 
 ### 2.3 Generar el secreto (lo hace cada usuario, con su propia cuenta)
-Conectado ya como el usuario (por ejemplo carlos ```su -l carlos```, del grupo supervisores), ejecuta:
-- ``` google-authenticator ```
-El asistente hace varias preguntas; esto es lo que responderéis y por qué:
+1. Cambia a la sesión de carlos: ``` su -l carlos ```
+2. Lanza el asistente interactivo: ``` google-authenticator ```
+
+
+3. El asistente hace varias preguntas; esto es lo que responderéis y por qué:
 Pregunta | Respuesta recomendada
 ---------|--------------------
 ¿Tokens time-based? | y - es el estándar TOTP
@@ -89,14 +93,83 @@ Pregunta | Respuesta recomendada
 ¿Ampliar la ventana de validez? | n - por defecto ya tolera pequeños desfases de reloj
 ¿Limitar los intentos (rate-limit? | y - 3 intentos cada 30 seg frena la fuerza bruta sobre el código
 
-El asistente muestra un código QR en texto y una clave secreta en base32, además de 5 «scratch codes» (códigos de emergencia, de un solo uso).
+4. El asistente muestra un código QR en texto y una clave secreta en base32, además de 5 «scratch codes» (códigos de emergencia, de un solo uso).
 
-Deberás escanear el QR en la APP Google Authenticator o introducir la clave a mano.
+Escanea el código QR que se dibuja en la terminal con la app móvil y guarda los 5 scratch codes en un sitio seguro.
 
 ### 2.4 Conectar Google Authenticator con sshd
-Añade esta línea al final de /etc/pam.d/sshd (después de @include common-auth, para que primero se compruebe la contraseña y después el código): ```auth required pam_google_authenticator.so ```
-
-Y en /etc/ssh/sshd_config, asegúrate de que estas directivas están así (el nombre exacto puede variar según la versión de OpenSSH: en las más recientes es KbdInteractiveAuthentication, en las antiguas ChallengeResponseAuthentication):
+1. Edita el archivo PAM de SSH: ```sudo nano /etc/pam.d/sshd ```
+2. Al final del archivo añade esta línea (después de @include common-auth, para que primero se compruebe la contraseña y después el código): ```auth required pam_google_authenticator.so ```
+3. Edita /etc/ssh/sshd_config con: ```sudo nano /etc/pam.d/sshd_config```, asegúrate de que estas directivas están así (el nombre exacto puede variar según la versión de OpenSSH: en las más recientes es KbdInteractiveAuthentication, en las antiguas ChallengeResponseAuthentication):
 - ```KbdInteractiveAuthentication yes```
 - ```UsePAM yes```
 - ```PasswordAuthentication yes```
+4. Aplica los cambios reiniciando el servicio: ```sudo systemctl restart ssh```
+
+### 2.5 Verificación
+1. Sin cerrar la sesión actual, abre otra terminal y conéctate como carlos: ```ssh carlos@localhost```
+2. Verificación: Debe pedirte primero la contraseña y seguidamente el código de 6 digitos ```Verification code```
+3. Introduce un código falso a propósito y comprueba que rechaza la conexión con ``` Permission denied```
+
+### 2.6 ¿A quién se lo exigimos?
+**El módulo pam_succeed_if permite condicionar una regla de PAM a la pertenencia a un usuario o grupo.**
+**Realiza las investigaciones necesarias para crear un grupo al cual exigirle autenticación de doble factor**
+
+Para exigir el doble factor únicamente a los miembros del grupo supervidores:
+1. Abrimos de nuevo /etc/pam.d/sshd: ```sudo nano /etc/pam.d/sshd``
+2. Modificamos la línea final dejándola de esta manera: ```auth [success=1 default=ignore] pam_succeed_if.so quiet user notingroup supervisores``` ```auth required pam_google_authenticator.so```
+  - Explicación: si el usuario NO pertenece a supervisores, PAM se salta 1 regla y no le pide el MFA; a los miembros de supervisores sí se lo exige obligatoriamente
+4. Guarda el fichero y reinicia el servicio con ```sudo systemctl restart ssh```
+
+## PARTE 3 - Privilegios justos con sudo
+### 3.1 Por qué no usar la cuenta root a diario
+Es el mismo principio de mínimo privilegio que ya vimos con UAC en Windows: si una cuenta con la que se trabaja a diario tiene siempre todos los permisos, cualquier error o malware que la afecte tiene también todos los permisos. sudo permite conceder, comando a comando, exactamente lo que cada grupo necesita, sin compartir la contraseña de root ni dar una cuenta de administrador completa.
+
+### 3.2 Sintaxis básica de sudoers
+Las reglas de sudo nunca se editan a mano con un editor cualquiera: se usa visudo, que comprueba la sintaxis antes de guardar y evita dejar el sistema sin forma de usar sudo por un error de tecleo. Lo recomendado es crear un fichero propio en /etc/sudoers.d/ en vez de tocar /etc/sudoers directamente.
+Quién | Desde dónde | Como quién | Qué comandos | Pide clave
+------|--------------|-----------|--------------|----------
+%ingenieria | ALL | (root) | systemctl restart / status hmi_planta | Sí
+$supervisores | ALL | (root) | auditoria_planta.sh | no (NOPASSWD)
+operarios | - | - | ninguno | -
+
+El % delante del nombre indica que es un grupo, no un usuario. NOPASSWD es una excepción pensada solo para un script muy concreto y de bajo riesgo (una auditoría de solo lectura); como norma general, que sudo pida contraseña es lo deseable.
+
+### 3.3 Práctica guiada
+1. Crea un script de prueba y dale permisos de ejecución:
+- ```sudo tee /usr/local/bin/auditoria_planta.sh << 'EOF' ```
+- ```#!/bin/bash ```
+- ```echo "[$(date)] Auditoria de planda ejecutada por $(whoami)"```
+- `` EOF ```
+- ```sudo chmod 755 /usr/local/bin/auditoria_planta.sh```
+  - Verificación: Ejecuta auditoria_planta.sh y comprueba que imprime la fecha y el usuario.
+
+2. Crea el fichero de reglas de sudo usando visudo:
+- ```sudo visudo -f /etc/sudoers.d/torrent ```
+
+3. Escribe dentro estas dos lineas:
+- %ingenieria ALL=(root) /usr/bin/systemctl restart hmi_planta, /usr/bin/systemctl status hmi_planta
+- %supervisores ALL=(root) NOPASSWD: /usr/local/bin/auditoria_planta.sh
+
+### 3.4. Verificación
+1. Comprueba los permisos de cada usuario según su grupo:
+- ```sudo -l -U nestor```
+- ```sudo -l -U carlos```
+- ```sudo -l -U alberto```
+  - Verificación: nestor solo puede reiniciar/consultar hmi_planta pidiendo clave; carlos puede ejecutar la auditoria sin clave y alberto no tiene permisos administrativos.
+2. Entra como alberto y prueba a reiniciar el servicio:
+- ```su -l alberto```
+- ```sudo systemctl restart hmi_planta```
+  - Verificación: La salida debe mostrar: alberto is not in the sudoers file. This incident will be reported
+3. Revisa la traza de seguridad generada:
+- ```sudo tail n 20 /var/log/auth.log```
+4. Entra como carlos y prueba el script:
+- ```su -l carlos ```
+- ``` sudo /usr/local/bin/auditoria_planta.sh```
+  - Verificación: El script se ejecuta inmediatamente sin pedir ninguna contraseña.
+
+## Preguntas de reflexión
+1. Una contraseña de 20 caracteres aleatorios es, en teoría, casi imposible de reventar por fuerza bruta. ¿Qué riesgo concreto cubre el MFA que una contraseña así, por fuerte que sea, no cubre?
+2. Buscad brevemente la postura actual del NIST sobre la caducidad obligatoria de contraseñas. ¿Por qué forzar el cambio cada pocos días puede llegar a ser contraproducente para la seguridad real?
+3. Aunque sudo esté perfectamente configurado, seguís necesitando las ACL de la sesión anterior. Explicad con un ejemplo por qué una capa no sustituye a la otra.
+4. Un alumno pierde el móvil con Google Authenticator y no guardó los scratch codes. ¿Qué tendría que hacer el administrador del sistema para devolverle el acceso sin comprometer la seguridad del resto de cuentas?
