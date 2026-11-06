@@ -82,7 +82,7 @@ Ejecuta con privilegios administrativos en el sistema:
 ### 2.3 Generar el secreto (lo hace cada usuario, con su propia cuenta)
 1. Cambia a la sesión de carlos: ``` su -l carlos ```
 2. Lanza el asistente interactivo: ``` google-authenticator ```
-
+  <img width="893" height="491" alt="image" src="https://github.com/user-attachments/assets/65c935c8-1711-4590-85e5-34ece35e7863" />
 
 3. El asistente hace varias preguntas; esto es lo que responderéis y por qué:
 Pregunta | Respuesta recomendada
@@ -94,22 +94,38 @@ Pregunta | Respuesta recomendada
 ¿Limitar los intentos (rate-limit? | y - 3 intentos cada 30 seg frena la fuerza bruta sobre el código
 
 4. El asistente muestra un código QR en texto y una clave secreta en base32, además de 5 «scratch codes» (códigos de emergencia, de un solo uso).
-
 Escanea el código QR que se dibuja en la terminal con la app móvil y guarda los 5 scratch codes en un sitio seguro.
+
 
 ### 2.4 Conectar Google Authenticator con sshd
 1. Edita el archivo PAM de SSH: ```sudo nano /etc/pam.d/sshd ```
 2. Al final del archivo añade esta línea (después de @include common-auth, para que primero se compruebe la contraseña y después el código): ```auth required pam_google_authenticator.so ```
+  <img width="791" height="126" alt="image" src="https://github.com/user-attachments/assets/e4ff9238-6b18-4f72-9e21-7eb8ba6f29fa" />
+
+
 3. Edita /etc/ssh/sshd_config con: ```sudo nano /etc/pam.d/sshd_config```, asegúrate de que estas directivas están así (el nombre exacto puede variar según la versión de OpenSSH: en las más recientes es KbdInteractiveAuthentication, en las antiguas ChallengeResponseAuthentication):
 - ```KbdInteractiveAuthentication yes```
+  <img width="727" height="72" alt="image" src="https://github.com/user-attachments/assets/cf7ef739-d789-4488-84f0-5a2c4f864a59" />
+
 - ```UsePAM yes```
+  <img width="742" height="106" alt="image" src="https://github.com/user-attachments/assets/045e6b3c-f947-43c3-a942-0b41b803effc" />
+
 - ```PasswordAuthentication yes```
+  <img width="467" height="87" alt="image" src="https://github.com/user-attachments/assets/12832856-9941-4a52-bc6f-8807e76075ad" />
+
 4. Aplica los cambios reiniciando el servicio: ```sudo systemctl restart ssh```
 
 ### 2.5 Verificación
 1. Sin cerrar la sesión actual, abre otra terminal y conéctate como carlos: ```ssh carlos@localhost```
 2. Verificación: Debe pedirte primero la contraseña y seguidamente el código de 6 digitos ```Verification code```
+  <img width="496" height="135" alt="image" src="https://github.com/user-attachments/assets/546a9d8e-a7c3-4cde-9885-9f1a3c5c2743" />
+
 3. Introduce un código falso a propósito y comprueba que rechaza la conexión con ``` Permission denied```
+  <img width="798" height="577" alt="image" src="https://github.com/user-attachments/assets/b8327b8c-01f9-4e14-aaec-f81a16281e52" />
+
+4. Al poner bien el código si que dejará entrar
+  <img width="798" height="577" alt="image" src="https://github.com/user-attachments/assets/9acaa29b-b3f7-412b-bf22-5680aa0b4ad3" />
+
 
 ### 2.6 ¿A quién se lo exigimos?
 **El módulo pam_succeed_if permite condicionar una regla de PAM a la pertenencia a un usuario o grupo.**
@@ -119,7 +135,9 @@ Para exigir el doble factor únicamente a los miembros del grupo supervidores:
 1. Abrimos de nuevo /etc/pam.d/sshd: ```sudo nano /etc/pam.d/sshd``
 2. Modificamos la línea final dejándola de esta manera: ```auth [success=1 default=ignore] pam_succeed_if.so quiet user notingroup supervisores``` ```auth required pam_google_authenticator.so```
   - Explicación: si el usuario NO pertenece a supervisores, PAM se salta 1 regla y no le pide el MFA; a los miembros de supervisores sí se lo exige obligatoriamente
-4. Guarda el fichero y reinicia el servicio con ```sudo systemctl restart ssh```
+  <img width="727" height="137" alt="image" src="https://github.com/user-attachments/assets/97951878-808d-434b-84ab-0168e07ad14c" />
+
+3. Guarda el fichero y reinicia el servicio con ```sudo systemctl restart ssh```
 
 ## PARTE 3 - Privilegios justos con sudo
 ### 3.1 Por qué no usar la cuenta root a diario
@@ -141,8 +159,11 @@ El % delante del nombre indica que es un grupo, no un usuario. NOPASSWD es una e
 - ```#!/bin/bash ```
 - ```echo "[$(date)] Auditoria de planda ejecutada por $(whoami)"```
 - `` EOF ```
+  <img width="712" height="127" alt="image" src="https://github.com/user-attachments/assets/dc411475-3f43-4f92-b1d8-359015206077" />
+
 - ```sudo chmod 755 /usr/local/bin/auditoria_planta.sh```
   - Verificación: Ejecuta auditoria_planta.sh y comprueba que imprime la fecha y el usuario.
+  <img width="627" height="50" alt="image" src="https://github.com/user-attachments/assets/845f4d02-5dab-4db3-b719-be464f95e563" />
 
 2. Crea el fichero de reglas de sudo usando visudo:
 - ```sudo visudo -f /etc/sudoers.d/torrent ```
@@ -150,22 +171,31 @@ El % delante del nombre indica que es un grupo, no un usuario. NOPASSWD es una e
 3. Escribe dentro estas dos lineas:
 - %ingenieria ALL=(root) /usr/bin/systemctl restart hmi_planta, /usr/bin/systemctl status hmi_planta
 - %supervisores ALL=(root) NOPASSWD: /usr/local/bin/auditoria_planta.sh
+  <img width="827" height="65" alt="image" src="https://github.com/user-attachments/assets/6b4d0309-ad0f-474a-8000-5fd8b63f07e2" />
 
 ### 3.4. Verificación
 1. Comprueba los permisos de cada usuario según su grupo:
 - ```sudo -l -U nestor```
 - ```sudo -l -U carlos```
 - ```sudo -l -U alberto```
+  <img width="852" height="292" alt="image" src="https://github.com/user-attachments/assets/c6307924-84a7-44c2-9e04-7afddf6bdac3" />
+
   - Verificación: nestor solo puede reiniciar/consultar hmi_planta pidiendo clave; carlos puede ejecutar la auditoria sin clave y alberto no tiene permisos administrativos.
 2. Entra como alberto y prueba a reiniciar el servicio:
 - ```su -l alberto```
 - ```sudo systemctl restart hmi_planta```
+  <img width="518" height="71" alt="image" src="https://github.com/user-attachments/assets/ee552e0e-804a-439e-9464-e727a5be6f9a" />
+
   - Verificación: La salida debe mostrar: alberto is not in the sudoers file. This incident will be reported
 3. Revisa la traza de seguridad generada:
 - ```sudo tail n 20 /var/log/auth.log```
+  <img width="892" height="686" alt="image" src="https://github.com/user-attachments/assets/82a0f6a8-bff7-4d7e-8e3a-13ef568fb975" />
+
 4. Entra como carlos y prueba el script:
 - ```su -l carlos ```
 - ``` sudo /usr/local/bin/auditoria_planta.sh```
+  ![Uploading image.png…]()
+
   - Verificación: El script se ejecuta inmediatamente sin pedir ninguna contraseña.
 
 ## Preguntas de reflexión
