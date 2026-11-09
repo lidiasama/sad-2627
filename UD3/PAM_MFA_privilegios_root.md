@@ -194,7 +194,7 @@ El % delante del nombre indica que es un grupo, no un usuario. NOPASSWD es una e
 4. Entra como carlos y prueba el script:
 - ```su -l carlos ```
 - ``` sudo /usr/local/bin/auditoria_planta.sh```
-  ![Uploading image.png…]()
+ <img width="641" height="57" alt="image" src="https://github.com/user-attachments/assets/ba889442-1cca-4b01-8589-9f37f3cfd3ce" />
 
   - Verificación: El script se ejecuta inmediatamente sin pedir ninguna contraseña.
 
