@@ -265,6 +265,54 @@ La CA que acabas de crear se va a reutilizar para emitir certificados de la VPN.
 - 
 
 ##  PARTE 2 Un certificado real y gratuito con Let’s Encrypt
-###
+### 2.1 Cómo funciona esto
+Let’s Encrypt es una autoridad de certificación pública, gratuita y automática. Su certificado raíz ya viene instalado en todos los navegadores y sistemas, y por eso, a diferencia de la CA de Torrent S.L., los navegadores confían en lo que firma sin que tengas que importar nada.
+
+Desafío | Cómo funciona | Sirve en nuestras VM?
+--------|---------------|-----------------------
+HTTP-01 | Let’s Encrypt se conecta a tu servidor web desde Internet y busca un fichero concreto. | No: las VM están en la red del aula y no son accesibles desde fuera. 
+DNS-01 | Tú creas un registro DNS de tipo TXT con un valor que te da Let’s Encrypt. Si lo encuentra, demuestras que controlas el dominio. | Sí: no hace falta que el servidor sea accesible desde Internet
+
+- Usaremos DNS-01 con un subdominio gratuito de DuckDNS y la herramienta acme.sh, que automatiza el proceso.
+
+### 2.2 Paso a paso
+#### Paso 1 — Crear tu subdominio en DuckDNS
+1. Iniciar sesión en DuckDNS
+Entra en la web oficial: https://www.duckdns.org e inicia sesión (por ejemplo, con tu cuenta de GitHub o Google).
+  - Verification: Accederás al panel de control donde en la parte superior verás tu token (una cadena alfanumérica larga).
+
+2. Registrar el subdominio y apuntar la IP
+- En el recuadro sub domains, escribe un nombre único en minúsculas y sin espacios (torrent-samaniego). Pulsa en add domain.
+- En la lista de dominios, en el campo current ip, escribe tu IP_SERVIDOR (192.168.1.100).
+- Haz clic en el botón verde update ip.
+
+3. Comprobar la resolución DNS
+Vuelve a la terminal de tu máquina virtual y comprueba que el dominio resuelve a tu IP local:
+- ```getent hosts torrent-samaniego.duckdns.org```
+  - Qué deberías ver: La IP 192.168.1.100 seguida de torrent-samaniego.duckdns.org. Eso confirma que el DNS público ya apunta a tu servidor
+
+#### Paso 2 — Instalar acme.sh (leyendo antes lo que se va a ejecutar)
+Una vez confirmada la resolución DNS, pasamos a instalar la herramienta acme.sh, que se encargará de comunicarse con Let's Encrypt. Como pide el guion, entraremos como root e inspeccionaremos el script antes de ejecutarlo:
+1. Pasar a root y descargar el instalador
+- ``` sudo -i ```
+- ```curl -o get-acme.sh https://get.acme.sh```
+  - Verification: El archivo get-acme.sh aparecerá guardado en el directorio actual (ls -l get-acme.sh).
+
+2. Inspeccionar el script
+Abre el script para ver su código fuente:
+- ```less get-acme.sh```
+
+- Anota en tu informe (Paso 2): Dos cosas que hace el script de instalación
+
+3. Ejecutar la instalación con tu correo
+Lanza el script indicando una dirección de correo válida
+- ```sh get-acme.sh email=TU_CORREO@ejemplo.com```
+
+#### Paso 3 — Elegir Let’s Encrypt como autoridad
+
+
+
+
+
 
 
