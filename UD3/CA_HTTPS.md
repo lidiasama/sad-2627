@@ -256,13 +256,21 @@ La CA que acabas de crear se va a reutilizar para emitir certificados de la VPN.
 
 ### 1.3 Preguntas de la Parte 1
 1. Explica con tus palabras la diferencia entre ca.key, ca.crt, srv.key y srv.crt: ¿cuáles son secretos y cuáles públicos?
-- 
+- ca.key es la clave privad de nuestra CA. Se utiliza para firmar los certificados que emitimos. Debe guardarse protegida con contraseña y nunca debe salir de CA.
+- svr.key: es la clave privada del servidor web. El servidor la usa para cifrar y descifrar las conexiones TLS que llegan de los clientes. Se guarda sin contraseña para que Aapache pueda arrancar solo, pero con permisos estrictos de lectura exclusiva para root.
+- ca.crt: es el certificado raíz de la CA, contiene su clave pública y sus datos identificativos. Se reparte e instala en el almacén de confianza de los navegadores para que confíen en los certificados que firme nuestra CA.
+- srv.crt: es el certificado digital del servidor web, ya firmado por la CA. Apache lo envía en abierto a cualquier cliente que se conecte por HTTTPS para demostrar su identidad y entregarle su clave pública.
+
 2. Alguien roba ca.key (sin contraseña). ¿Qué puede hacer con ella? ¿Qué tendría que hacer Torrent S.L. para recuperar la confianza?
-- 
+- Al tener una clave privada raíz sin contraseña, puede generar y firmar certificados validos para cualquier dominio o servicio haciéndose pasar por Torrent S.L. Como los equipos de la empresa ya confían en esa CA, el atacante puede montar servidores falsos y realizar ataques sin que los navegadores muestren ninguna advertencia de seguridad, pudiendo interceptar credenciales y tráfico interno.
+- La CA actual queda completamente comprometida y debe anularse. Primero debe eliminar y revocar la clave y el certificado raíz comprometidos. Después debe crear desde cero una nueva CA, desinstalar manualmente el certificado ca.crt del almacén de confianza de loa navegadores y equipos e instalar el nuevo ca.crt en los clientes y volver a emitir e instalar los certificados de los servidores.
+
 3. ¿Por qué descargar ca.crt por HTTP y no verificar la huella es un riesgo? ¿Quién podría aprovecharlo?
-- 
+- Porque el protocolo HTTP viaja en texto plano, sin cifrado ni mecanismos que garanticen la integridad del archivo. Si importamos el certificado en el navegadore sin comprobar antes su huella por un canal seguro no tenemos garantía de que el fichero recibido sea el original.
+- Podría aprovecharlo cualquiera situado en la misma red o en el camino de la conexión. El atacante podría interceptar la descarga y sustituir ca.crt por su propio certificado raíz; una vez instalado en el navegador de la víctima, podría suplantar y descifrar cualquier web que el usuario visite.
+
 4. ¿Es una buena idea que la CA y el servidor web estén en la misma máquina? ¿Qué problema de seguridad crea?
-- 
+- No, es una mala práctica se seguridad. Porque rompe el principio de aislamiento de servicios. El servidor web está expuesto a la red y a posibles vulnerabilidades en sus aplicaciones. Si un atacante logra explotar un fallo en la web y escalar privilegios hasta el root del equipo, tendrá acceso directo a ca.key, comprometiendo toda la infraestructura de la empresa. En un entorno real, la CA raíz debe mantenerse aislada en una máquina independiente y desconectada de la red.
 
 ##  PARTE 2 Un certificado real y gratuito con Let’s Encrypt
 ### 2.1 Cómo funciona esto
@@ -283,12 +291,18 @@ Entra en la web oficial: https://www.duckdns.org e inicia sesión (por ejemplo, 
 
 2. Registrar el subdominio y apuntar la IP
 - En el recuadro sub domains, escribe un nombre único en minúsculas y sin espacios (torrent-samaniego). Pulsa en add domain.
+  <img width="877" height="151" alt="image" src="https://github.com/user-attachments/assets/7a150b33-1191-4d10-9ce8-ddc27059ad24" />
+
 - En la lista de dominios, en el campo current ip, escribe tu IP_SERVIDOR (192.168.1.100).
-- Haz clic en el botón verde update ip.
+  <img width="787" height="447" alt="image" src="https://github.com/user-attachments/assets/4de9c2b8-7eed-46b5-83d4-a864fbcfcc4d" />
+
+- Haz clic en el botón update ip.
 
 3. Comprobar la resolución DNS
 Vuelve a la terminal de tu máquina virtual y comprueba que el dominio resuelve a tu IP local:
 - ```getent hosts torrent-samaniego.duckdns.org```
+  <img width="707" height="53" alt="image" src="https://github.com/user-attachments/assets/d58a0d4f-a0c1-464a-81f4-133896cd114c" />
+
   - Qué deberías ver: La IP 192.168.1.100 seguida de torrent-samaniego.duckdns.org. Eso confirma que el DNS público ya apunta a tu servidor
 
 #### Paso 2 — Instalar acme.sh (leyendo antes lo que se va a ejecutar)
@@ -296,21 +310,118 @@ Una vez confirmada la resolución DNS, pasamos a instalar la herramienta acme.sh
 1. Pasar a root y descargar el instalador
 - ``` sudo -i ```
 - ```curl -o get-acme.sh https://get.acme.sh```
+  <img width="811" height="201" alt="image" src="https://github.com/user-attachments/assets/384d08fa-4abb-49d8-92aa-b532041785a9" />
+
   - Verification: El archivo get-acme.sh aparecerá guardado en el directorio actual (ls -l get-acme.sh).
 
 2. Inspeccionar el script
 Abre el script para ver su código fuente:
 - ```less get-acme.sh```
 
-- Anota en tu informe (Paso 2): Dos cosas que hace el script de instalación
+- Anota en tu informe (Paso 2): Dos cosas que hace el script de instalación: clona/descarga el repositorio desde GitHub a ~/.acme.sh y añade una tarea programada en cron para la renovación automática
 
 3. Ejecutar la instalación con tu correo
 Lanza el script indicando una dirección de correo válida
 - ```sh get-acme.sh email=TU_CORREO@ejemplo.com```
+  <img width="882" height="380" alt="image" src="https://github.com/user-attachments/assets/10180424-1ad4-473d-a320-5cec056497ed" />
 
 #### Paso 3 — Elegir Let’s Encrypt como autoridad
+1. Recargar el entorno para disponer del alias acme.sh:
+- ```source ~/.bashrc```
+
+2. Establecer Let's Encrypt como CA predeterminada:
+- ```~/.acme.sh/acme.sh --set-default-ca --server letsencrypt```
+  <img width="882" height="62" alt="image" src="https://github.com/user-attachments/assets/bfd6a7e8-f2e9-4dca-9b5c-e621038a7f71" />
+
+  - Verificación: Si el comando finaliza sin errores y muestra la URL del directorio de Let's Encrypt (acme-v02.api.letsencrypt.org), la CA queda fijada de forma permanente para todas las solicitudes posteriores.
+
+- **¿Por qué se ejecuta este comando?**
+- Las versiones modernas de acme.sh apuntan por defecto a ZeroSSL. Al ejecutar --set-default-ca --server letsencrypt, reconfiguramos el cliente ACME para que negocie la emisión y renovación contra los servidores públicos y gratuitos de Let's Encrypt.
+
+#### Paso 4: Configurar el token de DuckDNS y solicitar el certificado
+1. Exportar el token de DuckDNS en memoria
+- ```export DuckDNS_Token="PEGA_AQUI_TU_TOKEN_DE_DUCKDNS"```
+  <img width="822" height="79" alt="image" src="https://github.com/user-attachments/assets/67102210-447c-4a83-9b30-6ecaab52c18f" />
+
+  - Verificación: Ejecuta ```echo $DuckDNS_Token``` y confirma que imprime exactamente la cadena alfanumérica sin espacios ni comillas extra.
+ 
+2. Emitir el certificado usando el desafío DNS-01
+Solicita a Let's Encrypt el certificado para tu subdominio torrent-samaniego.duckdns.org indicando el plugin dns_duckdns:
+- ```~/.acme.sh/acme.sh --issue --dns dns_duckdns -d torrent-samaniego.duckdns.org```
+  <img width="891" height="155" alt="image" src="https://github.com/user-attachments/assets/c306e1ba-fc8a-4d28-b6ef-dc8d055ebd34" />
+
+  - Verificación: El cliente acme.sh creará automáticamente un registro TXT (_acme-challenge.torrent-samaniego.duckdns.org) en DuckDNS, esperará unos segundos a que se propague y descargará los ficheros del certificado. El proceso finalizará mostrando en verde Cert success. junto con las rutas donde se han guardado fullchain.cer y torrent-samaniego.duckdns.org.key.
+
+- **Qué ocurre por debajo**
+- Al usar el desafío --dns dns_duckdns: No necesitas abrir puertos en el router hacia Internet: Let's Encrypt no intenta conectarse a tu IP privada (192.168.1.100), sino que consulta los servidores DNS públicos de DuckDNS para comprobar que controlas el dominio mediante el registro TXT temporal creado con tu token. A diferencia del certificado autofirmado de la Parte 1, este certificado está firmado por una Autoridad de Certificación pública reconocida universalmente (Let's Encrypt / ISRG Root X1).
+
+#### Paso 5: Instalar el certificado de Let's Encrypt en Apache
+1. Instalar los ficheros con --install-cert
+- ```~/.acme.sh/acme.sh --install-cert -d torrent-samaniego.duckdns.org --key-file       /etc/ssl/private/le-torrent.key --fullchain-file /etc/ssl/certs/le-torrent-fullchain.crt --reloadcmd     "systemctl reload apache2" ```
+  <img width="885" height="223" alt="image" src="https://github.com/user-attachments/assets/13047779-e5cc-421e-9c02-a0fc4f19b33e" />
+
+  - Verificación: La consola mostrará mensajes indicando la instalación de la clave, del certificado completoy la ejecución con éxito del comando de recarga
+
+2. Apuntar Apache al nuevo certificado en default-ssl.conf
+Abre el fichero de configuración SSL de Apache:
+- ```nano /etc/apache2/sites-available/default-ssl.conf```
+Localiza las líneas SSLCertificateFile y SSLCertificateKeyFile (que actualmente apuntan a torrent-srv.crt y torrent-srv.key) y cámbialas para que apunten a los ficheros de Let's Encrypt:
+- SSLCertificateFile /etc/ssl/certs/le-torrent-fullchain.crt
+- SSLCertificateKeyFile /etc/ssl/private/le-torrent.key
+  <img width="871" height="136" alt="image" src="https://github.com/user-attachments/assets/17e70cb6-bdf4-4c08-96f2-f491606fc148" />
+
+3. Validar sintaxis y recargar Apache
+Comprueba la configuración y recarga el servidor web:
+- ```apache2ctl configtest```
+- ```systemctl reload apache2```
+  <img width="862" height="150" alt="image" src="https://github.com/user-attachments/assets/f6bab2fd-86d0-40ad-bc93-4cfaed3459c9" />
+
+  - Verificación: configtest debe devolver Syntax OK y systemctl reload apache2 finalizará en silencio sin errores.
+
+- **Por qué usamos --fullchain-file y --install-cert**
+  - --fullchain-file: Incluye tanto tu certificado del servidor (torrent-samaniego.duckdns.org) como el certificado intermedio de Let's Encrypt (R10 / R11). Sin la cadena completa, muchos clientes y navegadores no pueden enlazar tu certificado hasta la raíz pública (ISRG Root X1)
+  - --install-cert: Nunca se deben copiar a mano los ficheros desde ~/.acme.sh/. Al usar --install-cert, acme.sh guarda en su configuración interna dónde están instalados y qué comando ejecutar (--reloadcmd), automatizando todo el ciclo cuando el cron renueve el certificado a los 60 días.
+
+#### Paso 6: Comprobar el certificado real
+1. Comprobar el candado en Firefox 
+- Abre en el navegador de tu ordenador físico la URL exacta de tu subdominio (recuerda usar el nombre de dominio, no la IP): https://torrent-samaniego.duckdns.org
+  <img width="897" height="195" alt="image" src="https://github.com/user-attachments/assets/a6caaa86-a6ff-463f-a2a5-d6b117452f9e" />
+
+  - Verificación: La página carga directamente con el candado verde/seguro sin ninguna advertencia, y al revisar los detalles del certificado aparece emitido por Let's Encrypt (R10 / R11).
+
+2. Verificar la cadena completa con OpenSS
+- ```openssl s_client -connect torrent-samaniego.duckdns.org:443 -servername torrent-samaniego.duckdns.org </dev/null 2>/dev/null | grep -E 's:|i:|Verify return code'```
+  <img width="887" height="260" alt="image" src="https://github.com/user-attachments/assets/4b43a5cf-ee21-4d1f-95c4-dffc17f546ef" />
+
+  - Verificación: Devolverá Verify return code: 0 (ok) sin necesidad de pasar -CAfile, demostrando que el sistema ya confía de forma nativa en la cadena de Let's Encrypt.
+
+3. Verificar la renovación automática en cron
+- ``` crontab -l | grep acme.sh```
+  <img width="875" height="50" alt="image" src="https://github.com/user-attachments/assets/b6654502-2e37-4b09-bb5e-8beb571d4cad" />
+
+  - Verificación: Aparecerá una línea programada que ejecuta /root/.acme.sh/acme.sh --cron automáticamente cada día para renovar el certificado antes de que caduque.
+ 
+#### Preguntas y tabla comparativa
+1. ¿Por qué los certificados de Let's Encrypt duran solo 90 días (frente a los 365 de la Parte 1)?
+- Porque reducir la vida útil de 90 días limita el tiempo de exposición si la clave privada del servidor llega a ser robada o comprometida, y a la vez obliga a los administradores a automatizar todo el ciclo de renovación en vez de depender de tareas manuales propensas a olvidos.
+  
+2. ¿Por qué Firefox y OpenSSL confían en este certificado sin haber importado nada previamente?
+- Porque Let's Encrypt es una CA pública cuya entidad raíz ya viene preinstalada dentro de los almacenes de confianza de los navegadores y sistemas operativos modernos.
+
+3. ¿Qué ventaja tiene usar el desafío DNS-01 (--dns dns_duckdns) frente al desafío HTTP-01?
+El reto DNI-01 valida la propiedad del dominio creando un registro temporal TST en los servidores públicos de DucksDNS. Esto permite emitir certificados reales para máquinas internas con IP privada sin tener que abrir los puertos 80 o 443 en el router.
+
+**Tabla resumen**
+
+Aspecto | Parte 1 (CA propia/OpenSSL) | Parte 2 (Let`s Encrypt/acme.sh)
+--------|-----------------------------|-------------------------------
+Emisor (Issuer) | Torrent S.L. CA Raiz | Let's Encrypt (R10/R11, pública)
+Confianza en clientes | Manual, hay que importar ca.crt en cada navegador | Automática, está preinstalada de serie en todos los navegadores
+Identificador válido | IP (192.168.1.100) y dominio local (hmi.torrent.local) | Nombre de dominio público (torrent-samaniego.duckdns.org)
+Duración y renovación | 365 días, renovación manual firmando otro CSR | 90 días, renovación automática cada 60 días con crontab
 
 
+## Parte 3: 
 
 
 
